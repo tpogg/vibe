@@ -100,7 +100,7 @@ async def cmd_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "┌─ CONTACT ─────────────────────────┐\n"
         "│  github   : github.com/tpogg/vibe │\n"
         "│  email    : hello@vibe.terminal    │\n"
-        "│  telegram : t.me/vibeterminal      │\n"
+        "│  telegram : t.me/+1uBHW1JjfFNiNGM5 │\n"
         "└────────────────────────────────────┘"
     )
     await update.message.reply_text(contact)
