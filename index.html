@@ -301,6 +301,7 @@ COMMANDS.help = async () => {
     ['snake',   'play snake'],
     ['weather', 'fake weather report'],
     ['hack',    'look like a hacker (very important)'],
+    ['telegram','telegram channel & bot info'],
     ['clear',   'clear the terminal'],
     ['date',    'show current date/time'],
     ['whoami',  'who are you?'],
@@ -380,6 +381,7 @@ COMMANDS.contact = async () => {
   await print('  │                                          │', 'line-amber');
   await print('  │  github   : github.com/tpogg/vibe        │', 'line-amber');
   await print('  │  email    : hello@vibe.terminal          │', 'line-amber');
+  await print('  │  telegram : t.me/+1uBHW1JjfFNiNGM5      │', 'line-amber');
   await print('  │  matrix   : @operator:matrix.org         │', 'line-amber');
   await print('  │  vibe     : immaculate                   │', 'line-amber');
   await print('  │                                          │', 'line-amber');
@@ -483,6 +485,26 @@ COMMANDS.hack = async () => {
     await print('  ' + fakeLines[i], i === fakeLines.length - 3 ? 'line-red' : i === fakeLines.length -1 ? 'line-dim' : 'line-green', i * 120);
   }
   await blank(fakeLines.length * 120 + 200);
+};
+
+COMMANDS.telegram = async () => {
+  await blank();
+  await print('  ┌─ TELEGRAM ──────────────────────────────────────┐', 'line-cyan');
+  await print('  │                                                 │', 'line-cyan');
+  await print('  │  CHANNEL  : t.me/+1uBHW1JjfFNiNGM5              │', 'line-cyan');
+  await print('  │  BOT      : t.me/vibeterminal_bot               │', 'line-cyan');
+  await print('  │                                                 │', 'line-cyan');
+  await print('  │  The channel posts updates, builds, and vibes.  │', 'line-cyan');
+  await print('  │  DM the bot to send messages directly to me.    │', 'line-cyan');
+  await print('  │                                                 │', 'line-cyan');
+  await print('  │  SETUP YOUR OWN:                                │', 'line-cyan');
+  await print('  │  1. Message @BotFather on Telegram              │', 'line-cyan');
+  await print('  │  2. Send /newbot and follow the prompts         │', 'line-cyan');
+  await print('  │  3. Save the API token (never commit it!)       │', 'line-cyan');
+  await print('  │  4. Run the bot: python bot/vibe_bot.py         │', 'line-cyan');
+  await print('  │                                                 │', 'line-cyan');
+  await print('  └─────────────────────────────────────────────────┘', 'line-cyan');
+  await blank();
 };
 
 COMMANDS.clear = async () => {
