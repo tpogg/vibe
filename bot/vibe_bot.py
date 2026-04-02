@@ -7,75 +7,32 @@ A Telegram bot that:
 - Responds with terminal-style vibes
 
 Setup:
-  1. Message @BotFather on Telegram → /newbot → get your API token
-  2. Create a channel (e.g. @vibeterminal) and add the bot as admin
+  1. Message @BotFather on Telegram -> /newbot -> get your API token
+  2. Create a channel and add the bot as admin
   3. Copy .env.example to .env and fill in your values
-  4. pip install python-telegram-bot python-dotenv
+  4. pip install httpx python-dotenv
   5. python bot/vibe_bot.py
 """
 
 import os
+import asyncio
+import random
 import logging
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
-)
+import httpx
 
 load_dotenv()
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "")  # e.g. "@vibeterminal" or "-100xxxxxxxxxx"
-OWNER_CHAT_ID = os.environ.get("TELEGRAM_OWNER_CHAT_ID", "")  # your personal chat ID
+CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "")
+OWNER_CHAT_ID = os.environ.get("TELEGRAM_OWNER_CHAT_ID", "")
+API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
-
-
-# ─── Command handlers ────────────────────────────────────────────────────────
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    welcome = (
-        "██╗   ██╗██╗██████╗ ███████╗\n"
-        "██║   ██║██║██╔══██╗██╔════╝\n"
-        "██║   ██║██║██████╔╝█████╗\n"
-        "╚██╗ ██╔╝██║██╔══██╗██╔══╝\n"
-        " ╚████╔╝ ██║██████╔╝███████╗\n"
-        "  ╚═══╝  ╚═╝╚═════╝ ╚══════╝\n"
-        "\n"
-        "Welcome to VIBE TERMINAL bot.\n"
-        "\n"
-        "Commands:\n"
-        "/start   - this message\n"
-        "/about   - about the operator\n"
-        "/fortune - random dev wisdom\n"
-        "/contact - get in touch\n"
-        "\n"
-        "Or just send a message — it'll be forwarded to the operator."
-    )
-    await update.message.reply_text(welcome)
-
-
-async def cmd_about(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    about = (
-        "╔══════════════════════════════════════╗\n"
-        "║           ABOUT THE OPERATOR         ║\n"
-        "╠══════════════════════════════════════╣\n"
-        "║  NAME     : vibe.operator            ║\n"
-        "║  STATUS   : caffeine-dependent       ║\n"
-        "║  LOCATION : somewhere on the grid    ║\n"
-        "║  MISSION  : build cool things        ║\n"
-        "╚══════════════════════════════════════╝"
-    )
-    await update.message.reply_text(about)
-
 
 FORTUNES = [
     "The best code is the code you never have to write.",
@@ -89,62 +46,115 @@ FORTUNES = [
 ]
 
 
-async def cmd_fortune(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    import random
-    fortune = random.choice(FORTUNES)
-    await update.message.reply_text(f"🔮 {fortune}")
+async def send_message(client: httpx.AsyncClient, chat_id, text: str):
+    resp = await client.post(f"{API}/sendMessage", json={"chat_id": chat_id, "text": text})
+    return resp.json()
 
 
-async def cmd_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    contact = (
-        "┌─ CONTACT ─────────────────────────┐\n"
-        "│  github   : github.com/tpogg/vibe │\n"
-        "│  email    : hello@vibe.terminal    │\n"
-        "│  telegram : t.me/+1uBHW1JjfFNiNGM5 │\n"
-        "└────────────────────────────────────┘"
-    )
-    await update.message.reply_text(contact)
-
-
-# ─── Message forwarding ──────────────────────────────────────────────────────
-
-async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Forward any DM to the bot owner."""
-    if not OWNER_CHAT_ID:
-        await update.message.reply_text("Message received! The operator will see it soon.")
+async def handle_update(client: httpx.AsyncClient, update: dict):
+    msg = update.get("message")
+    if not msg:
         return
 
-    user = update.effective_user
-    header = f"📨 Message from {user.full_name} (@{user.username or 'no-username'}, id:{user.id}):"
-    await context.bot.send_message(
-        chat_id=OWNER_CHAT_ID,
-        text=f"{header}\n\n{update.message.text}",
-    )
-    await update.message.reply_text("Message forwarded to the operator. Stand by.")
+    chat_id = msg["chat"]["id"]
+    text = msg.get("text", "")
+    user = msg.get("from", {})
+    username = user.get("username", "no-username")
+    full_name = user.get("first_name", "") + " " + user.get("last_name", "")
+    full_name = full_name.strip()
+
+    if text == "/start":
+        welcome = (
+            "██╗   ██╗██╗██████╗ ███████╗\n"
+            "██║   ██║██║██╔══██╗██╔════╝\n"
+            "██║   ██║██║██████╔╝█████╗\n"
+            "╚██╗ ██╔╝██║██╔══██╗██╔══╝\n"
+            " ╚████╔╝ ██║██████╔╝███████╗\n"
+            "  ╚═══╝  ╚═╝╚═════╝ ╚══════╝\n"
+            "\n"
+            "Welcome to VIBE TERMINAL bot.\n"
+            "\n"
+            "Commands:\n"
+            "/start   - this message\n"
+            "/about   - about the operator\n"
+            "/fortune - random dev wisdom\n"
+            "/contact - get in touch\n"
+            "\n"
+            "Or just send a message — it'll be forwarded to the operator."
+        )
+        await send_message(client, chat_id, welcome)
+
+    elif text == "/about":
+        about = (
+            "╔══════════════════════════════════════╗\n"
+            "║           ABOUT THE OPERATOR         ║\n"
+            "╠══════════════════════════════════════╣\n"
+            "║  NAME     : vibe.operator            ║\n"
+            "║  STATUS   : caffeine-dependent       ║\n"
+            "║  LOCATION : somewhere on the grid    ║\n"
+            "║  MISSION  : build cool things        ║\n"
+            "╚══════════════════════════════════════╝"
+        )
+        await send_message(client, chat_id, about)
+
+    elif text == "/fortune":
+        fortune = random.choice(FORTUNES)
+        await send_message(client, chat_id, f"🔮 {fortune}")
+
+    elif text == "/contact":
+        contact = (
+            "┌─ CONTACT ─────────────────────────┐\n"
+            "│  github   : github.com/tpogg/vibe │\n"
+            "│  email    : hello@vibe.terminal    │\n"
+            "│  telegram : t.me/+1uBHW1JjfFNiNGM5 │\n"
+            "└────────────────────────────────────┘"
+        )
+        await send_message(client, chat_id, contact)
+
+    elif not text.startswith("/"):
+        # Forward message to owner
+        if OWNER_CHAT_ID:
+            header = f"📨 Message from {full_name} (@{username}, id:{user.get('id')}):"
+            await send_message(client, OWNER_CHAT_ID, f"{header}\n\n{text}")
+            await send_message(client, chat_id, "Message forwarded to the operator. Stand by.")
+        else:
+            await send_message(client, chat_id, "Message received! The operator will see it soon.")
 
 
-# ─── Channel posting helper ──────────────────────────────────────────────────
+async def poll():
+    offset = 0
+    async with httpx.AsyncClient(timeout=60) as client:
+        logger.info("VIBE bot is running... polling for updates")
+        while True:
+            try:
+                resp = await client.get(
+                    f"{API}/getUpdates",
+                    params={"offset": offset, "timeout": 30},
+                    timeout=60,
+                )
+                data = resp.json()
+                if not data.get("ok"):
+                    logger.error("API error: %s", data)
+                    await asyncio.sleep(5)
+                    continue
 
-async def post_to_channel(context: ContextTypes.DEFAULT_TYPE, text: str):
-    """Utility to post a message to the channel. Call from a job or handler."""
+                for update in data.get("result", []):
+                    offset = update["update_id"] + 1
+                    await handle_update(client, update)
+
+            except httpx.TimeoutException:
+                continue
+            except Exception as e:
+                logger.error("Error: %s", e)
+                await asyncio.sleep(5)
+
+
+async def post_to_channel(text: str):
+    """Utility to post a message to the channel."""
     if CHANNEL_ID:
-        await context.bot.send_message(chat_id=CHANNEL_ID, text=text)
-
-
-# ─── Main ────────────────────────────────────────────────────────────────────
-
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("about", cmd_about))
-    app.add_handler(CommandHandler("fortune", cmd_fortune))
-    app.add_handler(CommandHandler("contact", cmd_contact))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_owner))
-
-    logger.info("VIBE bot is running...")
-    app.run_polling()
+        async with httpx.AsyncClient() as client:
+            await send_message(client, CHANNEL_ID, text)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(poll())
