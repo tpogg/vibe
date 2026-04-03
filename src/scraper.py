@@ -137,11 +137,20 @@ class ExpiredDomainsScraper:
 
     def fetch_pending_delete(self, pages: int = 3) -> list[RawDomain]:
         """Fetch domains in pending-delete status (dropping soon)."""
-        return self._fetch_listing("/pending-delete-domains/", pages, status="pending_delete")
+        # Try multiple known URL patterns
+        for path in ["/pending-delete-domains/", "/pendingdelete-domains/", "/deleted-domains/?fstatus=pendingdelete"]:
+            results = self._fetch_listing(path, pages, status="pending_delete")
+            if results:
+                return results
+        return []
 
     def fetch_expiring(self, pages: int = 3) -> list[RawDomain]:
         """Fetch domains that are expiring soon."""
-        return self._fetch_listing("/expired-domains/", pages, status="expiring")
+        for path in ["/expired-domains/", "/expiring-domains/", "/deleted-domains/?fstatus=expired"]:
+            results = self._fetch_listing(path, pages, status="expiring")
+            if results:
+                return results
+        return []
 
     def _fetch_listing(self, path: str, pages: int, status: str) -> list[RawDomain]:
         all_domains = []
@@ -166,7 +175,7 @@ class ExpiredDomainsScraper:
 
         return all_domains
 
-    def fetch_all(self, pages_per_category: int = 3) -> list[RawDomain]:
+    def fetch_all(self, pages_per_category: int = 5) -> list[RawDomain]:
         """Fetch from all categories and deduplicate."""
         if not self.logged_in:
             self.login()
