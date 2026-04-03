@@ -137,7 +137,7 @@ def start_health_server():
 
 def run_scheduled():
     """Run on a schedule (configured via CHECK_INTERVAL_HOURS)."""
-    # Start HTTP server to keep Render happy
+    # Start HTTP server FIRST so Render sees a healthy service
     start_health_server()
 
     interval = Config.CHECK_INTERVAL_HOURS
@@ -146,11 +146,12 @@ def run_scheduled():
     console.print(f"Thresholds: age≥{Config.MIN_DOMAIN_AGE_YEARS}yr, BL≥{Config.MIN_BACKLINKS}, DA≥{Config.MIN_DOMAIN_AUTHORITY}")
     console.print()
 
-    # Run immediately on start
-    run_scan()
+    # Run first scan in a background thread so health server stays responsive
+    scan_thread = threading.Thread(target=run_scan, daemon=True)
+    scan_thread.start()
 
-    # Then schedule recurring runs
-    schedule.every(interval).hours.do(run_scan)
+    # Schedule recurring runs
+    schedule.every(interval).hours.do(lambda: threading.Thread(target=run_scan, daemon=True).start())
 
     while running:
         schedule.run_pending()
