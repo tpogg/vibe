@@ -1,10 +1,13 @@
 """Main bot runner — orchestrates scraping, enrichment, scoring, and watchlist updates."""
 
+import os
 import sys
 import time
 import random
 import signal
+import threading
 import schedule
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from rich.console import Console
 from rich.table import Table
 
@@ -111,8 +114,32 @@ def run_once():
     run_scan()
 
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        watchlist = Watchlist()
+        body = f"Domain Watchlist Bot running. {len(watchlist)} domains tracked."
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(body.encode())
+
+    def log_message(self, format, *args):
+        pass  # Suppress request logs
+
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    console.print(f"[dim]Health server listening on port {port}[/dim]")
+
+
 def run_scheduled():
     """Run on a schedule (configured via CHECK_INTERVAL_HOURS)."""
+    # Start HTTP server to keep Render happy
+    start_health_server()
+
     interval = Config.CHECK_INTERVAL_HOURS
     console.print(f"[bold]Domain Watchlist Bot[/bold] — scanning every {interval} hours")
     console.print(f"Watchlist: {Config.WATCHLIST_PATH}")

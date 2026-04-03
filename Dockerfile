@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY .env* ./
 
-CMD ["python", "-m", "src", "scan"]
+CMD ["python", "-m", "src", "watch"]
