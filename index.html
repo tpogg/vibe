@@ -1,711 +1,682 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VIBE TERMINAL v1.0</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --green: #00ff41;
-      --dim-green: #00aa2a;
-      --dark-green: #003b0e;
-      --bg: #0a0a0a;
-      --amber: #ffb000;
-      --red: #ff3c3c;
-      --cyan: #00e5ff;
-      --magenta: #ff00ff;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--green);
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.5;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #scanlines {
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.15) 2px,
-        rgba(0,0,0,0.15) 4px
-      );
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    #crt-glow {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
-      pointer-events: none;
-      z-index: 9;
-    }
-
-    #terminal {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      overflow: hidden;
-    }
-
-    #output {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding-bottom: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--dim-green) transparent;
-    }
-
-    #output::-webkit-scrollbar { width: 4px; }
-    #output::-webkit-scrollbar-thumb { background: var(--dim-green); }
-
-    .line { white-space: pre-wrap; word-break: break-all; margin: 0; }
-    .line-green { color: var(--green); }
-    .line-dim { color: var(--dim-green); }
-    .line-amber { color: var(--amber); }
-    .line-red { color: var(--red); }
-    .line-cyan { color: var(--cyan); }
-    .line-magenta { color: var(--magenta); }
-    .line-white { color: #fff; }
-
-    #input-row {
-      display: flex;
-      align-items: center;
-      border-top: 1px solid var(--dark-green);
-      padding-top: 10px;
-      margin-top: 4px;
-      flex-shrink: 0;
-    }
-
-    #prompt { color: var(--green); margin-right: 6px; white-space: nowrap; }
-
-    #input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--green);
-      font-family: inherit;
-      font-size: inherit;
-      caret-color: var(--green);
-    }
-
-    #input::selection { background: var(--dark-green); }
-
-    /* Matrix canvas overlay */
-    #matrix-canvas {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: black;
-    }
-
-    #matrix-exit {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 21;
-      color: var(--green);
-      font-family: inherit;
-      font-size: 12px;
-      opacity: 0.7;
-    }
-
-    /* Snake game */
-    #snake-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: var(--bg);
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #snake-header {
-      color: var(--green);
-      font-size: 18px;
-      margin-bottom: 12px;
-      letter-spacing: 4px;
-    }
-
-    #snake-score-display {
-      color: var(--amber);
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-
-    #snake-canvas {
-      border: 1px solid var(--dim-green);
-      image-rendering: pixelated;
-    }
-
-    #snake-msg {
-      color: var(--red);
-      margin-top: 10px;
-      font-size: 12px;
-      height: 20px;
-    }
-
-    #snake-controls {
-      color: var(--dim-green);
-      margin-top: 8px;
-      font-size: 11px;
-    }
-
-    /* Typewriter blink */
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .cursor::after { content: '█'; animation: blink 1s infinite; margin-left: 1px; }
-
-    /* ASCII art colors */
-    .logo { color: var(--green); }
-
-    /* Progress bar animation */
-    @keyframes fill { from{width:0} to{width:100%} }
-
-    #fortune-display {
-      border: 1px solid var(--dim-green);
-      padding: 10px 16px;
-      margin: 4px 0;
-      color: var(--amber);
-      position: relative;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1V9.AI — Dominate Every Game</title>
+  <meta name="description" content="The ultimate AI-powered League of Legends training platform. Practice techniques, analyze replays, climb ranked.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
 </head>
 <body>
+  <!-- CRT Overlay Effects -->
+  <div id="scanlines"></div>
+  <div id="crt-glow"></div>
+  <canvas id="particles-canvas"></canvas>
 
-<div id="scanlines"></div>
-<div id="crt-glow"></div>
-
-<canvas id="matrix-canvas"></canvas>
-<div id="matrix-exit">[ press ESC or Q to exit matrix ]</div>
-
-<div id="snake-overlay">
-  <div id="snake-header">S N A K E</div>
-  <div id="snake-score-display">SCORE: 0 | HIGH SCORE: 0</div>
-  <canvas id="snake-canvas" width="400" height="400"></canvas>
-  <div id="snake-msg"></div>
-  <div id="snake-controls">WASD / ARROW KEYS to move | ESC to quit</div>
-</div>
-
-<div id="terminal">
-  <div id="output"></div>
-  <div id="input-row">
-    <span id="prompt">visitor@vibe:~$</span>
-    <input id="input" type="text" autocomplete="off" autofocus spellcheck="false" />
+  <!-- Boot Sequence -->
+  <div id="boot-screen">
+    <div class="boot-content">
+      <pre class="boot-logo" id="boot-logo"></pre>
+      <div class="boot-progress">
+        <div class="boot-bar" id="boot-bar"></div>
+      </div>
+      <div class="boot-text" id="boot-text">INITIALIZING 1V9 NEURAL ENGINE...</div>
+    </div>
   </div>
-</div>
 
-<script>
-// ─── Terminal engine ──────────────────────────────────────────────────────────
-const output = document.getElementById('output');
-const input  = document.getElementById('input');
-const history = [];
-let histIdx = -1;
+  <!-- Navigation -->
+  <nav id="main-nav">
+    <div class="nav-inner">
+      <a href="#home" class="nav-logo">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">1V9</span>
+        <span class="logo-dot">.</span>
+        <span class="logo-ai">AI</span>
+        <span class="logo-bracket">]</span>
+      </a>
+      <div class="nav-links" id="nav-links">
+        <a href="#home" class="nav-link active" data-page="home">HOME</a>
+        <a href="#train" class="nav-link" data-page="train">TRAINING</a>
+        <a href="#champions" class="nav-link" data-page="champions">CHAMPIONS</a>
+        <a href="#tierlist" class="nav-link" data-page="tierlist">TIER LIST</a>
+        <a href="#coaching" class="nav-link" data-page="coaching">AI COACH</a>
+        <a href="#tft" class="nav-link" data-page="tft">TFT</a>
+        <a href="#coin" class="nav-link" data-page="coin">$1V9</a>
+        <a href="#news" class="nav-link" data-page="news">NEWS</a>
+        <a href="#community" class="nav-link" data-page="community">COMMUNITY</a>
+      </div>
+      <div class="nav-right">
+        <div class="credits-display" id="credits-display">
+          <span class="credits-icon">◆</span>
+          <span class="credits-amount" id="credits-amount">100</span>
+          <span class="credits-label">CREDITS</span>
+        </div>
+        <button class="btn-cyber" id="btn-signin">SIGN IN</button>
+        <button class="nav-burger" id="nav-burger">☰</button>
+      </div>
+    </div>
+  </nav>
 
-function print(text, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.textContent = text;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
-  });
-}
+  <!-- Page Container -->
+  <main id="app">
 
-function printRaw(html, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.innerHTML = html;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
-  });
-}
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- HOME PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-home" class="page active">
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-glitch" data-text="1V9.AI">1V9.AI</div>
+          <p class="hero-tagline">NEURAL-POWERED LEAGUE TRAINING</p>
+          <p class="hero-sub">Master every technique. Climb every rank. Carry every game.</p>
+          <div class="hero-cta">
+            <a href="#train" class="btn-primary btn-glow" data-page="train">START TRAINING — FREE</a>
+            <a href="#coaching" class="btn-secondary" data-page="coaching">AI COACHING</a>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <span class="stat-num" data-count="847392">0</span>
+              <span class="stat-label">TECHNIQUES PRACTICED</span>
+            </div>
+            <div class="hero-stat">
+              <span class="stat-num" data-count="12847">0</span>
+              <span class="stat-label">PLAYERS CLIMBING</span>
+            </div>
+            <div class="hero-stat">
+              <span class="stat-num" data-count="94">0</span>
+              <span class="stat-label">% WIN RATE BOOST</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-terminal">
+          <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">1v9@neural:~</span>
+          </div>
+          <div class="terminal-body" id="hero-terminal-body">
+            <div class="terminal-line dim">$ 1v9 --analyze summoner</div>
+          </div>
+        </div>
+      </div>
 
-async function printLines(lines, cls = 'line-green', baseDelay = 0, step = 0) {
-  for (let i = 0; i < lines.length; i++) {
-    await print(lines[i], cls, baseDelay + i * step);
-  }
-}
+      <!-- Feature Cards -->
+      <div class="section" id="features">
+        <h2 class="section-title glitch-text">WEAPON SYSTEMS</h2>
+        <p class="section-sub">Everything you need to go from hardstuck to challenger</p>
+        <div class="feature-grid">
+          <div class="feature-card" data-page="train">
+            <div class="feature-icon">⚔️</div>
+            <h3>TRAINING ARENA</h3>
+            <p>Interactive click-based practice. Learn last-hitting, combos, wave management, and 30+ techniques through hands-on drills.</p>
+            <span class="feature-tag free">FREE TIER</span>
+          </div>
+          <div class="feature-card" data-page="coaching">
+            <div class="feature-icon">🧠</div>
+            <h3>AI COACH</h3>
+            <p>Neural network trained on 10M+ games. Get personalized advice, replay analysis, and real-time strategy suggestions.</p>
+            <span class="feature-tag pro">PRO</span>
+          </div>
+          <div class="feature-card" data-page="champions">
+            <div class="feature-icon">👑</div>
+            <h3>CHAMPION DATABASE</h3>
+            <p>Every champion. Every build. Every counter. Every matchup. Updated live with AI-analyzed win rates.</p>
+            <span class="feature-tag free">FREE</span>
+          </div>
+          <div class="feature-card" data-page="tierlist">
+            <div class="feature-icon">📊</div>
+            <h3>AI TIER LISTS</h3>
+            <p>Not your average tier list. Our neural engine analyzes patch data in real-time and predicts the meta before it forms.</p>
+            <span class="feature-tag free">FREE</span>
+          </div>
+          <div class="feature-card" data-page="tft">
+            <div class="feature-icon">🎲</div>
+            <h3>TFT LAB</h3>
+            <p>Teamfight Tactics comps, augment analysis, item optimization, and a live team builder powered by AI.</p>
+            <span class="feature-tag free">FREE</span>
+          </div>
+          <div class="feature-card" data-page="coin">
+            <div class="feature-icon">💎</div>
+            <h3>$1V9 TOKEN</h3>
+            <p>The meme coin for carries. Earn tokens through training, refer friends, and spend them on premium features.</p>
+            <span class="feature-tag token">$1V9</span>
+          </div>
+        </div>
+      </div>
 
-function blank(delay = 0) { return print('', 'line-green', delay); }
+      <!-- How It Works -->
+      <div class="section">
+        <h2 class="section-title glitch-text">HOW THE ARENA WORKS</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <h3>PICK A TECHNIQUE</h3>
+            <p>Browse 30+ techniques from beginner fundamentals to challenger-level mechanics. Start free.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <h3>ENTER THE ARENA</h3>
+            <p>A visual scene loads with champions, minions, and abilities. Read the objective prompt.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <h3>EXECUTE</h3>
+            <p>Click targets in the right sequence and timing. Animation cancels, last hits, combo chains — practice it all.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">04</div>
+            <h3>GET SCORED</h3>
+            <p>Perfect, Good, or Miss. See exactly what you did right or wrong. Track your improvement over time.</p>
+          </div>
+        </div>
+      </div>
 
-function echoCmd(cmd) {
-  print(`visitor@vibe:~$ ${cmd}`, 'line-dim');
-}
+      <!-- Referral Banner -->
+      <div class="section">
+        <div class="referral-banner">
+          <div class="referral-content">
+            <h2>REFER FRIENDS. EARN $1V9.</h2>
+            <p>Every friend who signs up earns you 50 credits + 100 $1V9 tokens. They get 50 bonus credits too.</p>
+            <div class="referral-link-box">
+              <input type="text" value="https://1v9.ai/ref/USER_7X92K" readonly id="referral-link">
+              <button class="btn-cyber" id="copy-referral">COPY</button>
+            </div>
+            <div class="referral-stats">
+              <span>REFERRED: <strong>0</strong></span>
+              <span>EARNED: <strong>0 $1V9</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-// ─── Boot sequence ────────────────────────────────────────────────────────────
-const LOGO = [
-  '██╗   ██╗██╗██████╗ ███████╗',
-  '██║   ██║██║██╔══██╗██╔════╝',
-  '██║   ██║██║██████╔╝█████╗  ',
-  '╚██╗ ██╔╝██║██╔══██╗██╔══╝  ',
-  ' ╚████╔╝ ██║██████╔╝███████╗',
-  '  ╚═══╝  ╚═╝╚═════╝ ╚══════╝',
-  '  T E R M I N A L   v 1 . 0 ',
-];
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TRAINING ARENA PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-train" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">TRAINING ARENA</h1>
+        <p class="page-sub">Master League of Legends techniques through interactive practice</p>
+        <div class="xp-bar-container">
+          <div class="xp-label">TRAINING LEVEL: <span id="train-level">1</span></div>
+          <div class="xp-bar">
+            <div class="xp-fill" id="xp-fill" style="width: 15%"></div>
+          </div>
+          <div class="xp-text"><span id="xp-current">150</span> / <span id="xp-max">1000</span> XP</div>
+        </div>
+      </div>
 
-async function boot() {
-  await print('Initializing VIBE OS...', 'line-dim', 0);
-  await print('[████████████████████] 100%  OK', 'line-dim', 400);
-  await blank(600);
+      <!-- Difficulty Tabs -->
+      <div class="train-tabs">
+        <button class="train-tab active" data-tier="beginner">
+          <span class="tab-icon">🟢</span> BEGINNER
+          <span class="tab-badge free">FREE</span>
+        </button>
+        <button class="train-tab" data-tier="intermediate">
+          <span class="tab-icon">🟡</span> INTERMEDIATE
+          <span class="tab-badge credits">25 CR</span>
+        </button>
+        <button class="train-tab" data-tier="advanced">
+          <span class="tab-icon">🔴</span> ADVANCED
+          <span class="tab-badge sub">PRO</span>
+        </button>
+      </div>
 
-  for (let i = 0; i < LOGO.length; i++) {
-    await print(LOGO[i], 'line-green', 700 + i * 60);
-  }
+      <!-- Technique Grid -->
+      <div class="technique-grid" id="technique-grid">
+        <!-- Populated by JS -->
+      </div>
 
-  await blank(1200);
-  await print('Welcome. Type  help  to see available commands.', 'line-cyan', 1300);
-  await blank(1350);
-  input.focus();
-}
+      <!-- Training Arena (hidden until technique selected) -->
+      <div class="arena-overlay" id="arena-overlay">
+        <div class="arena-container">
+          <div class="arena-header">
+            <div class="arena-info">
+              <h2 id="arena-technique-name">Last Hitting Under Tower</h2>
+              <span class="arena-tier" id="arena-tier">BEGINNER</span>
+            </div>
+            <button class="arena-close" id="arena-close">✕ ESC</button>
+          </div>
+          <div class="arena-prompt" id="arena-prompt">
+            Click the minion when its health bar is in the red zone to last hit it.
+          </div>
+          <div class="arena-viewport">
+            <canvas id="arena-canvas" width="800" height="500"></canvas>
+          </div>
+          <div class="arena-hud">
+            <div class="arena-score">
+              <span class="hud-label">SCORE</span>
+              <span class="hud-value" id="arena-score">0</span>
+            </div>
+            <div class="arena-combo">
+              <span class="hud-label">COMBO</span>
+              <span class="hud-value" id="arena-combo">0x</span>
+            </div>
+            <div class="arena-accuracy">
+              <span class="hud-label">ACCURACY</span>
+              <span class="hud-value" id="arena-accuracy">0%</span>
+            </div>
+            <div class="arena-timer">
+              <span class="hud-label">TIME</span>
+              <span class="hud-value" id="arena-timer">0:30</span>
+            </div>
+          </div>
+          <div class="arena-result" id="arena-result" style="display:none">
+            <div class="result-grade" id="result-grade">S+</div>
+            <div class="result-stats">
+              <div>Score: <span id="result-score">0</span></div>
+              <div>Accuracy: <span id="result-accuracy">0%</span></div>
+              <div>Best Combo: <span id="result-combo">0x</span></div>
+              <div>XP Earned: <span id="result-xp">+0 XP</span></div>
+            </div>
+            <div class="result-tip" id="result-tip"></div>
+            <div class="result-actions">
+              <button class="btn-primary" id="retry-btn">RETRY</button>
+              <button class="btn-secondary" id="back-to-list-btn">BACK TO LIST</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-// ─── Commands ─────────────────────────────────────────────────────────────────
-const COMMANDS = {};
+      <!-- Paywall Modal -->
+      <div class="paywall-modal" id="paywall-modal" style="display:none">
+        <div class="paywall-content">
+          <div class="paywall-close" id="paywall-close">✕</div>
+          <div class="paywall-icon">🔒</div>
+          <h2>UNLOCK THIS TECHNIQUE</h2>
+          <p id="paywall-text">This technique requires credits or a Pro subscription to access.</p>
+          <div class="paywall-options">
+            <div class="paywall-option">
+              <h3>USE CREDITS</h3>
+              <p class="paywall-price"><span id="paywall-cost">25</span> Credits</p>
+              <p>One-time unlock for this technique</p>
+              <button class="btn-primary" id="paywall-credits-btn">SPEND CREDITS</button>
+            </div>
+            <div class="paywall-option featured">
+              <div class="paywall-popular">BEST VALUE</div>
+              <h3>GO PRO</h3>
+              <p class="paywall-price">$9.99<span>/mo</span></p>
+              <p>Unlock ALL techniques + AI Coach + Replays</p>
+              <button class="btn-primary btn-glow" id="paywall-sub-btn">SUBSCRIBE</button>
+            </div>
+          </div>
+          <div class="paywall-earn">
+            <p>Need credits? <a href="#coin" data-page="coin">Earn $1V9 tokens</a> or <a href="#" id="paywall-referral">refer friends</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-COMMANDS.help = async () => {
-  const cmds = [
-    ['help',    'show this message'],
-    ['about',   'who is this?'],
-    ['skills',  'tech stack & skills'],
-    ['projects','featured projects'],
-    ['contact', 'get in touch'],
-    ['fortune', 'random wisdom'],
-    ['matrix',  'enter the matrix'],
-    ['snake',   'play snake'],
-    ['weather', 'fake weather report'],
-    ['hack',    'look like a hacker (very important)'],
-    ['clear',   'clear the terminal'],
-    ['date',    'show current date/time'],
-    ['whoami',  'who are you?'],
-  ];
-  await blank();
-  await print('┌─ AVAILABLE COMMANDS ──────────────────────────┐', 'line-cyan');
-  for (const [cmd, desc] of cmds) {
-    await print(`│  ${cmd.padEnd(12)}  ${desc.padEnd(32)} │`, 'line-cyan');
-  }
-  await print('└───────────────────────────────────────────────┘', 'line-cyan');
-  await blank();
-};
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- CHAMPIONS PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-champions" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">CHAMPION DATABASE</h1>
+        <p class="page-sub">Every champion. Every build. Every counter. AI-analyzed.</p>
+      </div>
+      <div class="champ-filters">
+        <input type="text" class="search-input" id="champ-search" placeholder="Search champions...">
+        <div class="role-filters" id="role-filters">
+          <button class="role-btn active" data-role="all">ALL</button>
+          <button class="role-btn" data-role="top">TOP</button>
+          <button class="role-btn" data-role="jungle">JNG</button>
+          <button class="role-btn" data-role="mid">MID</button>
+          <button class="role-btn" data-role="adc">ADC</button>
+          <button class="role-btn" data-role="support">SUP</button>
+        </div>
+      </div>
+      <div class="champ-grid" id="champ-grid">
+        <!-- Populated by JS -->
+      </div>
+      <!-- Champion Detail Modal -->
+      <div class="champ-modal" id="champ-modal" style="display:none">
+        <div class="champ-modal-content" id="champ-modal-content">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
 
-COMMANDS.about = async () => {
-  await blank();
-  const lines = [
-    '  ╔══════════════════════════════════════╗',
-    '  ║           ABOUT THE OPERATOR         ║',
-    '  ╠══════════════════════════════════════╣',
-    '  ║  NAME     : vibe.operator            ║',
-    '  ║  STATUS   : caffeine-dependent       ║',
-    '  ║  LOCATION : somewhere on the grid    ║',
-    '  ║  MISSION  : build cool things        ║',
-    '  ║  WEAKNESS : shiny new frameworks     ║',
-    '  ╚══════════════════════════════════════╝',
-  ];
-  await printLines(lines, 'line-cyan', 0, 40);
-  await blank();
-  await print('  A developer who believes good software should feel alive.', 'line-green');
-  await print('  This terminal is proof of concept #1.', 'line-green');
-  await blank();
-};
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TIER LIST PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-tierlist" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">AI TIER LIST</h1>
+        <p class="page-sub">Neural engine meta analysis — Patch 14.24</p>
+      </div>
+      <div class="tier-controls">
+        <div class="role-filters" id="tier-role-filters">
+          <button class="role-btn active" data-role="all">ALL</button>
+          <button class="role-btn" data-role="top">TOP</button>
+          <button class="role-btn" data-role="jungle">JNG</button>
+          <button class="role-btn" data-role="mid">MID</button>
+          <button class="role-btn" data-role="adc">ADC</button>
+          <button class="role-btn" data-role="support">SUP</button>
+        </div>
+        <div class="tier-rank-filter">
+          <select id="tier-rank-select" class="cyber-select">
+            <option value="all">ALL RANKS</option>
+            <option value="iron">IRON</option>
+            <option value="bronze">BRONZE</option>
+            <option value="silver">SILVER</option>
+            <option value="gold">GOLD</option>
+            <option value="platinum">PLATINUM</option>
+            <option value="emerald">EMERALD</option>
+            <option value="diamond">DIAMOND</option>
+            <option value="master">MASTER+</option>
+          </select>
+        </div>
+      </div>
+      <div class="tier-list" id="tier-list">
+        <!-- Populated by JS -->
+      </div>
+    </section>
 
-COMMANDS.skills = async () => {
-  await blank();
-  const skills = [
-    { label: 'JavaScript / TypeScript', pct: 92, color: 'line-amber' },
-    { label: 'Python                  ', pct: 85, color: 'line-cyan' },
-    { label: 'Rust                    ', pct: 60, color: 'line-green' },
-    { label: 'CSS / Design            ', pct: 78, color: 'line-magenta' },
-    { label: 'Systems / Infra         ', pct: 70, color: 'line-amber' },
-    { label: 'Vibes                   ', pct: 100, color: 'line-green' },
-  ];
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- AI COACHING PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-coaching" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">AI COACHING HUB</h1>
+        <p class="page-sub">Your personal neural network coach</p>
+      </div>
+      <div class="coaching-grid">
+        <!-- AI Chat Coach -->
+        <div class="coaching-panel chat-panel">
+          <div class="panel-header">
+            <h3>💬 AI STRATEGY CHAT</h3>
+            <span class="pro-badge">PRO</span>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg bot">
+              <div class="chat-avatar">🧠</div>
+              <div class="chat-bubble">Welcome to 1V9 AI Coach. I'm trained on 10M+ games. Ask me anything about League strategy, matchups, builds, or macro play. What do you need help with?</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" class="search-input" placeholder="Ask your AI coach...">
+            <button class="btn-cyber" id="chat-send">SEND</button>
+          </div>
+        </div>
 
-  await print('  SKILL MATRIX:', 'line-cyan');
-  await blank();
+        <!-- Replay Analysis -->
+        <div class="coaching-panel">
+          <div class="panel-header">
+            <h3>🎬 REPLAY ANALYSIS</h3>
+            <span class="pro-badge">PRO</span>
+          </div>
+          <div class="replay-upload">
+            <div class="upload-zone" id="upload-zone">
+              <div class="upload-icon">📁</div>
+              <p>DROP REPLAY FILE HERE</p>
+              <p class="upload-sub">or paste match ID / op.gg link</p>
+              <input type="text" class="search-input" placeholder="Paste match URL..." id="replay-url">
+              <button class="btn-primary" id="analyze-replay-btn" style="margin-top:12px">ANALYZE</button>
+            </div>
+          </div>
+          <div class="replay-results" id="replay-results" style="display:none">
+            <h4>ANALYSIS RESULTS</h4>
+            <div class="analysis-cards" id="analysis-cards"></div>
+          </div>
+        </div>
 
-  for (const s of skills) {
-    const bar = '█'.repeat(Math.floor(s.pct / 5)) + '░'.repeat(20 - Math.floor(s.pct / 5));
-    await print(`  ${s.label}  [${bar}] ${s.pct}%`, s.color);
-  }
-  await blank();
-};
+        <!-- Performance Dashboard -->
+        <div class="coaching-panel full-width">
+          <div class="panel-header">
+            <h3>📈 PERFORMANCE INSIGHTS</h3>
+          </div>
+          <div class="perf-grid">
+            <div class="perf-card">
+              <div class="perf-label">CS/MIN AVG</div>
+              <div class="perf-value cyan">7.2</div>
+              <div class="perf-delta positive">+0.8 this week</div>
+            </div>
+            <div class="perf-card">
+              <div class="perf-label">VISION SCORE</div>
+              <div class="perf-value amber">42</div>
+              <div class="perf-delta positive">+12 this week</div>
+            </div>
+            <div class="perf-card">
+              <div class="perf-label">KDA RATIO</div>
+              <div class="perf-value green">3.4</div>
+              <div class="perf-delta positive">+0.3 this week</div>
+            </div>
+            <div class="perf-card">
+              <div class="perf-label">WIN RATE</div>
+              <div class="perf-value magenta">58%</div>
+              <div class="perf-delta positive">+4% this week</div>
+            </div>
+            <div class="perf-card">
+              <div class="perf-label">CARRY SCORE</div>
+              <div class="perf-value green">A+</div>
+              <div class="perf-delta positive">TOP 5%</div>
+            </div>
+            <div class="perf-card">
+              <div class="perf-label">DEATH MAP</div>
+              <div class="perf-value red">3.1</div>
+              <div class="perf-delta negative">-0.5 needed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-COMMANDS.projects = async () => {
-  await blank();
-  const projects = [
-    { name: 'VIBE TERMINAL', tech: 'HTML/CSS/JS', desc: 'Retro terminal portfolio. You\'re in it.' },
-    { name: 'GRID ENGINE',   tech: 'Rust/WASM',   desc: 'Procedural world gen in the browser.' },
-    { name: 'SIGNAL BOT',    tech: 'Python',       desc: 'Discord bot that summarizes your server.' },
-    { name: 'NEON DB',       tech: 'TypeScript',   desc: 'Tiny in-memory document store.' },
-    { name: '???',           tech: '???',          desc: 'Something is cooking. Stay tuned.' },
-  ];
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TFT PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-tft" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">TFT LAB</h1>
+        <p class="page-sub">Teamfight Tactics AI-optimized compositions and strategy</p>
+      </div>
+      <div class="tft-tabs">
+        <button class="train-tab active" data-tft="comps">META COMPS</button>
+        <button class="train-tab" data-tft="items">ITEMS</button>
+        <button class="train-tab" data-tft="augments">AUGMENTS</button>
+        <button class="train-tab" data-tft="builder">TEAM BUILDER</button>
+      </div>
+      <div class="tft-content" id="tft-content">
+        <!-- Populated by JS -->
+      </div>
+    </section>
 
-  for (const p of projects) {
-    await print(`┌─[ ${p.name} ]`, 'line-magenta');
-    await print(`│  tech : ${p.tech}`, 'line-dim');
-    await print(`│  desc : ${p.desc}`, 'line-green');
-    await print('└─────────────────────────────────────────────', 'line-magenta');
-    await blank();
-  }
-};
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- $1V9 MEME COIN PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-coin" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">$1V9 TOKEN</h1>
+        <p class="page-sub">The meme coin for carries. Earn. Trade. Dominate.</p>
+      </div>
 
-COMMANDS.contact = async () => {
-  await blank();
-  await print('  ┌─ CONTACT ────────────────────────────────┐', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  │  github   : github.com/tpogg/vibe        │', 'line-amber');
-  await print('  │  email    : hello@vibe.terminal          │', 'line-amber');
-  await print('  │  matrix   : @operator:matrix.org         │', 'line-amber');
-  await print('  │  vibe     : immaculate                   │', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  └──────────────────────────────────────────┘', 'line-amber');
-  await blank();
-};
+      <div class="coin-hero">
+        <div class="coin-price-card">
+          <div class="coin-symbol">$1V9</div>
+          <div class="coin-price" id="coin-price">$0.00847</div>
+          <div class="coin-delta positive" id="coin-delta">▲ 24.7% (24h)</div>
+          <div class="coin-ticker" id="coin-ticker"></div>
+        </div>
+        <div class="coin-stats-grid">
+          <div class="coin-stat">
+            <span class="coin-stat-label">MARKET CAP</span>
+            <span class="coin-stat-value">$8.47M</span>
+          </div>
+          <div class="coin-stat">
+            <span class="coin-stat-label">HOLDERS</span>
+            <span class="coin-stat-value">12,847</span>
+          </div>
+          <div class="coin-stat">
+            <span class="coin-stat-label">24H VOLUME</span>
+            <span class="coin-stat-value">$1.2M</span>
+          </div>
+          <div class="coin-stat">
+            <span class="coin-stat-label">TOTAL SUPPLY</span>
+            <span class="coin-stat-value">1,000,000,000</span>
+          </div>
+        </div>
+      </div>
 
-const FORTUNES = [
-  'The best code is the code you never have to write.',
-  'It works on my machine. Ship the machine.',
-  'Any fool can write code a computer understands. Write code humans understand.',
-  'Debugging is like being a detective in a crime movie where you are also the murderer.',
-  'The first 90% takes 90% of the time. The last 10% takes the other 90%.',
-  'Always code as if the person maintaining your code is a violent psychopath who knows where you live.',
-  'Premature optimization is the root of all evil. But so is premature abstraction.',
-  'There are 2 hard problems in computer science: caching, naming things, and off-by-one errors.',
-  'A bug in production is worth two in development.',
-  'The cloud is just someone else\'s computer — and it\'s on fire.',
-  'Ship fast, but not so fast you forget to test.',
-  'The best feature is the one your users actually use.',
-  '"Works for me" is not a valid deployment strategy.',
-  'Every system eventually becomes a distributed system.',
-  'You ain\'t gonna need it — until you do.',
-  'Write tests first, regret later — but less.',
-];
+      <div class="section">
+        <h2 class="section-title">TOKENOMICS</h2>
+        <div class="tokenomics-grid">
+          <div class="token-card">
+            <div class="token-pct">40%</div>
+            <h3>COMMUNITY REWARDS</h3>
+            <p>Earn $1V9 by training, completing techniques, and climbing ranks</p>
+          </div>
+          <div class="token-card">
+            <div class="token-pct">25%</div>
+            <h3>LIQUIDITY POOL</h3>
+            <p>Locked liquidity ensuring stable trading on DEX platforms</p>
+          </div>
+          <div class="token-card">
+            <div class="token-pct">20%</div>
+            <h3>DEVELOPMENT</h3>
+            <p>Funding ongoing AI model training and platform development</p>
+          </div>
+          <div class="token-card">
+            <div class="token-pct">10%</div>
+            <h3>REFERRAL POOL</h3>
+            <p>Rewards for bringing new players to the 1V9 ecosystem</p>
+          </div>
+          <div class="token-card">
+            <div class="token-pct">5%</div>
+            <h3>TEAM</h3>
+            <p>2-year vesting schedule. Fully transparent on-chain.</p>
+          </div>
+        </div>
+      </div>
 
-COMMANDS.fortune = async () => {
-  const f = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-  await blank();
-  await print('  ╔══ FORTUNE ═══════════════════════════════════════╗', 'line-amber');
-  const words = f.split(' ');
-  let line = '  ║  ';
-  for (const w of words) {
-    if ((line + w).length > 54) {
-      await print(line.padEnd(55) + '║', 'line-amber');
-      line = '  ║  ' + w + ' ';
-    } else {
-      line += w + ' ';
-    }
-  }
-  if (line.trim() !== '║') {
-    await print(line.padEnd(55) + '║', 'line-amber');
-  }
-  await print('  ╚══════════════════════════════════════════════════╝', 'line-amber');
-  await blank();
-};
+      <div class="section">
+        <div class="coin-cta">
+          <h2>CONNECT WALLET</h2>
+          <p>Buy $1V9 on Uniswap or earn through training</p>
+          <div class="wallet-buttons">
+            <button class="btn-primary btn-glow" id="connect-wallet">🦊 CONNECT METAMASK</button>
+            <button class="btn-secondary">BUY ON UNISWAP</button>
+          </div>
+          <p class="coin-contract">Contract: <code>0x1V9...AI2026</code></p>
+        </div>
+      </div>
+    </section>
 
-COMMANDS.date = async () => {
-  const now = new Date();
-  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' };
-  await blank();
-  await print('  ' + now.toLocaleString('en-US', opts), 'line-cyan');
-  await print('  UNIX: ' + Math.floor(now.getTime()/1000), 'line-dim');
-  await blank();
-};
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- NEWS PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-news" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">NEWS FEED</h1>
+        <p class="page-sub">Patch notes, pro scene, meta shifts — powered by AI curation</p>
+      </div>
+      <div class="news-grid" id="news-grid">
+        <!-- Populated by JS -->
+      </div>
+    </section>
 
-COMMANDS.whoami = async () => {
-  await blank();
-  await print('  visitor', 'line-green');
-  await print('  groups: users, curious, potentially_dangerous', 'line-dim');
-  await blank();
-};
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- COMMUNITY PAGE -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <section id="page-community" class="page">
+      <div class="page-header">
+        <h1 class="page-title glitch-text">COMMUNITY</h1>
+        <p class="page-sub">Clips, highlights, leaderboards — the 1V9 army</p>
+      </div>
 
-COMMANDS.weather = async () => {
-  const conditions = ['NEON RAIN', 'DIGITAL FOG', 'BINARY SUNSHINE', 'CYBER OVERCAST', 'GLITCH STORM'];
-  const cond = conditions[Math.floor(Math.random() * conditions.length)];
-  const temp = (Math.random() * 30 + 10).toFixed(1);
-  const humidity = Math.floor(Math.random() * 60 + 30);
-  const wind = Math.floor(Math.random() * 50 + 5);
+      <div class="community-tabs">
+        <button class="train-tab active" data-comm="leaderboard">LEADERBOARD</button>
+        <button class="train-tab" data-comm="clips">CLIPS</button>
+        <button class="train-tab" data-comm="discussions">DISCUSSIONS</button>
+      </div>
 
-  await blank();
-  await print('  WEATHER REPORT :: THE GRID', 'line-cyan');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print(`  Condition  : ${cond}`, 'line-amber');
-  await print(`  Temp       : ${temp}°C`, 'line-green');
-  await print(`  Humidity   : ${humidity}%`, 'line-green');
-  await print(`  Wind       : ${wind} km/h`, 'line-green');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print('  forecast   : 100% chance of staying inside', 'line-dim');
-  await blank();
-};
+      <div class="community-content" id="community-content">
+        <!-- Populated by JS -->
+      </div>
+    </section>
 
-COMMANDS.hack = async () => {
-  await blank();
-  await print('  Initiating hack sequence...', 'line-red');
-  const fakeLines = [
-    'Scanning network interfaces...',
-    'Bypassing firewall... ████████ DONE',
-    'Injecting payload into mainframe...',
-    'Decrypting AES-256 keys... just kidding',
-    'Accessing NSA backdoor... ERROR: backdoor too obvious',
-    'Pivoting through 7 proxies...',
-    'Rooting target system...',
-    'Uploading "totally_not_malware.exe"...',
-    'Covering tracks... rm -rf /var/log/*',
-    '> ACCESS GRANTED',
-    '',
-    '  just kidding. this is art.',
-  ];
-  for (let i = 0; i < fakeLines.length; i++) {
-    await print('  ' + fakeLines[i], i === fakeLines.length - 3 ? 'line-red' : i === fakeLines.length -1 ? 'line-dim' : 'line-green', i * 120);
-  }
-  await blank(fakeLines.length * 120 + 200);
-};
+  </main>
 
-COMMANDS.clear = async () => {
-  output.innerHTML = '';
-};
+  <!-- Footer -->
+  <footer id="main-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="logo-bracket">[</span><span class="logo-text">1V9</span><span class="logo-dot">.</span><span class="logo-ai">AI</span><span class="logo-bracket">]</span>
+        <p>Neural-powered League training.</p>
+        <p class="footer-copy">© 2026 1V9.AI — All rights reserved.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>PLATFORM</h4>
+          <a href="#train">Training Arena</a>
+          <a href="#coaching">AI Coaching</a>
+          <a href="#champions">Champions</a>
+          <a href="#tierlist">Tier List</a>
+        </div>
+        <div class="footer-col">
+          <h4>ECOSYSTEM</h4>
+          <a href="#coin">$1V9 Token</a>
+          <a href="#community">Community</a>
+          <a href="#news">News</a>
+          <a href="#">Referral Program</a>
+        </div>
+        <div class="footer-col">
+          <h4>RESOURCES</h4>
+          <a href="#">API Docs</a>
+          <a href="#">Discord</a>
+          <a href="#">Twitter/X</a>
+          <a href="#">GitHub</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bar">
+      <span>1V9.AI is not affiliated with Riot Games. League of Legends is a trademark of Riot Games, Inc.</span>
+    </div>
+  </footer>
 
-// ─── Matrix ───────────────────────────────────────────────────────────────────
-COMMANDS.matrix = () => {
-  const canvas = document.getElementById('matrix-canvas');
-  const matExit = document.getElementById('matrix-exit');
-  canvas.style.display = 'block';
-  matExit.style.display = 'block';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
+  <!-- Auth Modal -->
+  <div class="auth-modal" id="auth-modal" style="display:none">
+    <div class="auth-content">
+      <div class="auth-close" id="auth-close">✕</div>
+      <h2>ACCESS <span class="text-cyan">1V9.AI</span></h2>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth="login">SIGN IN</button>
+        <button class="auth-tab" data-auth="register">REGISTER</button>
+      </div>
+      <form class="auth-form" id="auth-form">
+        <div class="auth-field">
+          <label>SUMMONER NAME / EMAIL</label>
+          <input type="text" class="search-input" placeholder="Enter your summoner name..." required>
+        </div>
+        <div class="auth-field">
+          <label>PASSWORD</label>
+          <input type="password" class="search-input" placeholder="••••••••" required>
+        </div>
+        <div class="auth-field register-only" style="display:none">
+          <label>REGION</label>
+          <select class="cyber-select">
+            <option>NA</option><option>EUW</option><option>EUNE</option><option>KR</option><option>JP</option><option>BR</option><option>OCE</option><option>LAN</option><option>LAS</option><option>TR</option><option>RU</option><option>PH</option><option>SG</option><option>TH</option><option>TW</option><option>VN</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary btn-glow" style="width:100%;margin-top:12px">SIGN IN</button>
+      </form>
+      <div class="auth-divider"><span>or continue with</span></div>
+      <div class="auth-social">
+        <button class="btn-secondary">RIOT ACCOUNT</button>
+        <button class="btn-secondary">DISCORD</button>
+        <button class="btn-secondary">GOOGLE</button>
+      </div>
+    </div>
+  </div>
 
-  const fontSize = 14;
-  const cols = Math.floor(canvas.width / fontSize);
-  const drops = Array(cols).fill(1);
-  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&';
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
 
-  let animId;
-  function draw() {
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00ff41';
-    ctx.font = fontSize + 'px monospace';
-    for (let i = 0; i < drops.length; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
-    animId = requestAnimationFrame(draw);
-  }
-  animId = requestAnimationFrame(draw);
-
-  function exitMatrix(e) {
-    if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
-      cancelAnimationFrame(animId);
-      canvas.style.display = 'none';
-      matExit.style.display = 'none';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      document.removeEventListener('keydown', exitMatrix);
-      input.focus();
-      print('  [ exited matrix ]', 'line-dim');
-    }
-  }
-  document.addEventListener('keydown', exitMatrix);
-  print('  [ matrix mode — press ESC or Q to exit ]', 'line-dim');
-};
-
-// ─── Snake ────────────────────────────────────────────────────────────────────
-COMMANDS.snake = () => {
-  const overlay = document.getElementById('snake-overlay');
-  const canvas  = document.getElementById('snake-canvas');
-  const scoreEl = document.getElementById('snake-score-display');
-  const msgEl   = document.getElementById('snake-msg');
-  overlay.style.display = 'flex';
-
-  const CELL = 20;
-  const COLS = 20;
-  const ROWS = 20;
-  const ctx  = canvas.getContext('2d');
-
-  let snake, dir, nextDir, food, score, highScore = 0, gameLoop, alive;
-
-  function reset() {
-    snake   = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
-    dir     = {x:1,y:0};
-    nextDir = {x:1,y:0};
-    food    = randomFood();
-    score   = 0;
-    alive   = true;
-    msgEl.textContent = '';
-    updateScore();
-  }
-
-  function randomFood() {
-    let f;
-    do {
-      f = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-    } while (snake.some(s => s.x===f.x && s.y===f.y));
-    return f;
-  }
-
-  function updateScore() {
-    scoreEl.textContent = `SCORE: ${score} | HIGH SCORE: ${highScore}`;
-  }
-
-  function draw() {
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // grid
-    ctx.strokeStyle = '#001a05';
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        ctx.strokeRect(c*CELL, r*CELL, CELL, CELL);
-      }
-    }
-
-    // food
-    ctx.fillStyle = '#ff3c3c';
-    ctx.fillRect(food.x*CELL+2, food.y*CELL+2, CELL-4, CELL-4);
-
-    // snake
-    for (let i = 0; i < snake.length; i++) {
-      const s = snake[i];
-      ctx.fillStyle = i===0 ? '#00ff41' : '#00aa2a';
-      ctx.fillRect(s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2);
-    }
-  }
-
-  function step() {
-    dir = nextDir;
-    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-        snake.some(s => s.x===head.x && s.y===head.y)) {
-      alive = false;
-      if (score > highScore) highScore = score;
-      updateScore();
-      clearInterval(gameLoop);
-      msgEl.textContent = `GAME OVER — SCORE: ${score}  [ press R to restart ]`;
-      return;
-    }
-
-    snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score += 10;
-      updateScore();
-      food = randomFood();
-    } else {
-      snake.pop();
-    }
-    draw();
-  }
-
-  function onKey(e) {
-    const map = {
-      ArrowUp:'U', ArrowDown:'D', ArrowLeft:'L', ArrowRight:'R',
-      w:'U', s:'D', a:'L', d:'R',
-      W:'U', S:'D', A:'L', D:'R',
-    };
-    const d = map[e.key];
-    if (d) {
-      e.preventDefault();
-      const dirs = {U:{x:0,y:-1},D:{x:0,y:1},L:{x:-1,y:0},R:{x:1,y:0}};
-      const nd = dirs[d];
-      if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
-    }
-    if (e.key === 'r' || e.key === 'R') {
-      clearInterval(gameLoop);
-      reset();
-      draw();
-      gameLoop = setInterval(step, 120);
-    }
-    if (e.key === 'Escape') {
-      clearInterval(gameLoop);
-      document.removeEventListener('keydown', onKey);
-      overlay.style.display = 'none';
-      input.focus();
-      print('  [ snake exited ]', 'line-dim');
-    }
-  }
-
-  document.addEventListener('keydown', onKey);
-  reset();
-  draw();
-  gameLoop = setInterval(step, 120);
-};
-
-// ─── Input handling ───────────────────────────────────────────────────────────
-input.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') {
-    const cmd = input.value.trim().toLowerCase();
-    input.value = '';
-    histIdx = -1;
-
-    echoCmd(cmd);
-
-    if (!cmd) return;
-    history.unshift(cmd);
-
-    if (COMMANDS[cmd]) {
-      await COMMANDS[cmd]();
-    } else {
-      await blank();
-      await print(`  command not found: ${cmd}`, 'line-red');
-      await print('  type  help  for available commands', 'line-dim');
-      await blank();
-    }
-  }
-
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (histIdx < history.length - 1) histIdx++;
-    input.value = history[histIdx] || '';
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (histIdx > 0) histIdx--;
-    else { histIdx = -1; input.value = ''; }
-    input.value = histIdx >= 0 ? history[histIdx] : '';
-  }
-
-  if (e.key === 'l' && e.ctrlKey) {
-    e.preventDefault();
-    await COMMANDS.clear();
-  }
-});
-
-// keep focus on input
-document.addEventListener('click', () => {
-  if (document.getElementById('snake-overlay').style.display === 'flex') return;
-  if (document.getElementById('matrix-canvas').style.display === 'block') return;
-  input.focus();
-});
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-boot();
-</script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
