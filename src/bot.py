@@ -2,15 +2,16 @@
 
 import sys
 import time
+import random
 import signal
 import schedule
 from rich.console import Console
 from rich.table import Table
 
 from src.config import Config
-from src.scraper import ExpiredDomainsScraper
-from src.enrichment import DomainEnricher
-from src.scorer import rank_domains
+from src.scraper import ExpiredDomainsScraper, RawDomain
+from src.enrichment import DomainEnricher, EnrichedDomain
+from src.scorer import rank_domains, score_domain
 from src.watchlist import Watchlist
 from src.purchaser import DomainPurchaser
 
@@ -155,11 +156,95 @@ def check_domain(domain_name: str):
         console.print(f"  {r['registrar']:>10}: {status} {price}")
 
 
+def _generate_demo_domains() -> list[RawDomain]:
+    """Generate realistic sample domains for demo/testing when live scraping is unavailable."""
+    samples = [
+        ("techvault.com",       "com", 8500,  320, 145, 32, 38, "expired"),
+        ("greenleafio.com",     "com", 3200,  185, 89,  28, 34, "pending_delete"),
+        ("dataforge.net",       "net", 12400, 520, 210, 41, 45, "expired"),
+        ("pixelcraft.org",      "org", 1800,  95,  62,  19, 25, "expiring"),
+        ("cloudpeak.io",        "io",  6700,  410, 175, 35, 40, "expired"),
+        ("marketpulse.com",     "com", 22000, 890, 340, 48, 52, "pending_delete"),
+        ("swiftlabs.dev",       "dev", 950,   68,  45,  14, 18, "expiring"),
+        ("bluehorizon.net",     "net", 4100,  230, 110, 26, 31, "expired"),
+        ("apexdigital.com",     "com", 15600, 640, 280, 44, 48, "expired"),
+        ("neonwave.co",         "co",  2100,  125, 70,  21, 27, "pending_delete"),
+        ("frostbyte.io",        "io",  7800,  380, 160, 33, 39, "expired"),
+        ("solarprime.com",      "com", 31000, 1200,450, 55, 58, "expired"),
+        ("urbanstack.net",      "net", 1400,  82,  55,  16, 22, "expiring"),
+        ("quantumleap.org",     "org", 9200,  450, 195, 37, 42, "pending_delete"),
+        ("brightpath.com",      "com", 5300,  290, 130, 30, 36, "expired"),
+        ("ironclad.dev",        "dev", 680,   48,  30,  11, 15, "expiring"),
+        ("vividmedia.com",      "com", 18500, 750, 310, 46, 50, "expired"),
+        ("stormcloud.io",       "io",  3800,  200, 98,  24, 30, "pending_delete"),
+        ("trailblazer.net",     "net", 11000, 480, 220, 39, 44, "expired"),
+        ("echovault.com",       "com", 2600,  150, 78,  22, 28, "expiring"),
+    ]
+    domains = []
+    for name, tld, bl, dp, arc, tf, cf, status in samples:
+        domains.append(RawDomain(
+            name=name, tld=tld, backlinks=bl, domain_pop=dp,
+            archive_count=arc, trust_flow=tf, citation_flow=cf,
+            source="demo", status=status,
+        ))
+    return domains
+
+
+def run_demo():
+    """Run the full pipeline with sample data (no network required)."""
+    console.rule("[bold blue]Starting Demo Scan (sample data)")
+
+    raw_domains = _generate_demo_domains()
+    console.print(f"[green]Loaded {len(raw_domains)} sample domains[/green]")
+
+    # Build enriched domains with simulated age and pagerank
+    enriched = []
+    for raw in raw_domains:
+        d = EnrichedDomain(
+            name=raw.name, tld=raw.tld, status=raw.status,
+            backlinks=raw.backlinks, domain_pop=raw.domain_pop,
+            archive_count=raw.archive_count,
+            trust_flow=raw.trust_flow, citation_flow=raw.citation_flow,
+            source=raw.source,
+            domain_age_years=round(random.uniform(2.0, 18.0), 1),
+            page_rank=round(random.uniform(1.0, 7.5), 1),
+        )
+        enriched.append(d)
+
+    console.print(f"[green]Enriched {len(enriched)} domains (simulated age + PageRank)[/green]")
+
+    ranked = rank_domains(enriched)
+    console.print(f"[green]{len(ranked)} domains passed minimum thresholds[/green]")
+
+    if not ranked:
+        console.print("[yellow]No domains met the minimum criteria.[/yellow]")
+        return
+
+    watchlist = Watchlist()
+    new_count = 0
+    for domain in ranked:
+        if watchlist.add(domain):
+            new_count += 1
+
+    console.print(f"[green]Watchlist updated: {new_count} new, {len(watchlist)} total[/green]")
+
+    top = watchlist.get_top(25)
+    print_table(top, title="Top Domains by Score (Demo)")
+
+    expiring = [d for d in top if d.get("status") == "pending_delete"]
+    if expiring:
+        console.print(f"\n[bold red]{len(expiring)} high-value domains pending deletion — consider backorder![/bold red]")
+        for d in expiring[:5]:
+            console.print(f"  -> {d['name']} (score: {d['score']}, status: {d['status']})")
+
+
 def main():
     args = sys.argv[1:]
 
     if not args or args[0] == "scan":
         run_once()
+    elif args[0] == "demo":
+        run_demo()
     elif args[0] == "watch":
         run_scheduled()
     elif args[0] == "list":
@@ -170,10 +255,11 @@ def main():
         console.print("[bold]Domain Watchlist Bot[/bold]")
         console.print()
         console.print("Usage:")
-        console.print("  python -m src.bot scan       Run one scan cycle")
-        console.print("  python -m src.bot watch      Run continuously on schedule")
-        console.print("  python -m src.bot list       Show current watchlist")
-        console.print("  python -m src.bot check <domain>  Check availability")
+        console.print("  python -m src scan              Run one scan cycle (live)")
+        console.print("  python -m src demo              Run with sample data (no API keys needed)")
+        console.print("  python -m src watch             Run continuously on schedule")
+        console.print("  python -m src list              Show current watchlist")
+        console.print("  python -m src check <domain>    Check domain availability")
 
 
 if __name__ == "__main__":
