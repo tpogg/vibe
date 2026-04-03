@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokemon Card Tracker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e17;
+      --bg-card: #111827;
+      --bg-card-hover: #1a2332;
+      --bg-input: #1e293b;
+      --border: #1e293b;
+      --border-hover: #334155;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --text-muted: #64748b;
+      --green: #10b981;
+      --green-bg: rgba(16,185,129,0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.1);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245,158,11,0.1);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59,130,246,0.1);
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+      --pokeball-red: #ee1515;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--pokeball-red);
+      border-radius: 50%;
+      position: relative;
+      border: 3px solid #222;
+    }
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      border: 3px solid #222;
+    }
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #222;
+      transform: translateY(-50%);
+    }
+
+    .logo h1 {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff, var(--amber));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo .sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scan-btn {
+      background: linear-gradient(135deg, var(--green), #059669);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .scan-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .scan-btn.scanning { animation: pulse 1.5s infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+    .status-dot.connected { background: var(--green); }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* ── Stats bar ──────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border-hover); }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .stat-value.green { color: var(--green); }
+    .stat-value.amber { color: var(--amber); }
+    .stat-value.blue { color: var(--blue); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.purple { color: var(--purple); }
+
+    /* ── Filters ────────────────────────────────────────── */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { color: var(--text); background: var(--bg-input); }
+    .filter-btn.active { background: var(--blue); color: white; }
+
+    .search-input {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      width: 260px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--blue); }
+    .search-input::placeholder { color: var(--text-muted); }
+
+    /* ── Tabs ───────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 12px 20px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab .badge {
+      background: var(--blue-bg);
+      color: var(--blue);
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+
+    /* ── Product grid ───────────────────────────────────── */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .product-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .product-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .product-card .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 16px 16px 0;
+    }
+
+    .product-card .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .badge-in-stock { background: var(--green-bg); color: var(--green); }
+    .badge-out-of-stock { background: var(--red-bg); color: var(--red); }
+    .badge-pre-order { background: var(--amber-bg); color: var(--amber); }
+    .badge-pre-release { background: var(--blue-bg); color: var(--blue); }
+    .badge-unknown { background: rgba(100,116,139,0.1); color: var(--text-muted); }
+
+    .product-card .retailer-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-input);
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    .product-card .card-body {
+      padding: 12px 16px 16px;
+    }
+
+    .product-card .product-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .product-card .product-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product-card .price {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .product-card .price.na { color: var(--text-muted); font-size: 14px; }
+
+    .product-card .product-type {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-input);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    .product-card .card-footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── Alerts panel ───────────────────────────────────── */
+    .alerts-panel {
+      display: none;
+    }
+    .alerts-panel.active { display: block; }
+
+    .alert-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .alert-item:hover { border-color: var(--border-hover); }
+    .alert-item .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .alert-item .alert-text { font-size: 14px; }
+    .alert-item .alert-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Watchlist ───────────────────────────────────────── */
+    .watchlist-panel { display: none; }
+    .watchlist-panel.active { display: block; }
+
+    .watchlist-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .watchlist-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .remove-btn {
+      background: var(--red-bg);
+      color: var(--red);
+      border: none;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* ── Scan log ───────────────────────────────────────── */
+    .scan-log-panel { display: none; }
+    .scan-log-panel.active { display: block; }
+
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .log-table th {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    .log-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .log-table .success { color: var(--green); }
+    .log-table .error { color: var(--red); }
+
+    /* ── Toast notifications ────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--green);
+      border-radius: var(--radius-sm);
+      padding: 14px 20px;
+      min-width: 320px;
+      max-width: 420px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: slideIn 0.3s ease-out;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .toast.alert-back-in-stock { border-color: var(--green); }
+    .toast.alert-pre-order { border-color: var(--amber); }
+    .toast.alert-new-prerelease { border-color: var(--blue); }
+
+    .toast-icon { font-size: 18px; flex-shrink: 0; }
+    .toast-body { flex: 1; }
+    .toast-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+    .toast-msg { font-size: 12px; color: var(--text-dim); }
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ── Empty state ────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 18px; color: var(--text-dim); margin-bottom: 8px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .header-inner { flex-direction: column; align-items: flex-start; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .product-grid { grid-template-columns: 1fr; }
+      .search-input { width: 100%; }
+      .filters { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div>
+        <h1>Pokemon Card Tracker</h1>
+        <div class="sub">Booster Boxes &bull; Elite Trainer Boxes &bull; Pre-Orders</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="connection-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <button class="scan-btn" id="scanBtn" onclick="triggerScan()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg>
+        Scan Now
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="stat-label">Total Products</div><div class="stat-value" id="statTotal">0</div></div>
+    <div class="stat-card"><div class="stat-label">In Stock</div><div class="stat-value green" id="statInStock">0</div></div>
+    <div class="stat-card"><div class="stat-label">Pre-Orders</div><div class="stat-value amber" id="statPreOrder">0</div></div>
+    <div class="stat-card"><div class="stat-label">Pre-Releases</div><div class="stat-value blue" id="statPreRelease">0</div></div>
+    <div class="stat-card"><div class="stat-label">Out of Stock</div><div class="stat-value red" id="statOOS">0</div></div>
+    <div class="stat-card"><div class="stat-label">Retailers</div><div class="stat-value purple" id="statRetailers">0</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="products" onclick="switchTab('products')">Products <span class="badge" id="productCount">0</span></button>
+    <button class="tab" data-tab="alerts" onclick="switchTab('alerts')">Alerts <span class="badge" id="alertCount">0</span></button>
+    <button class="tab" data-tab="watchlist" onclick="switchTab('watchlist')">Watchlist</button>
+    <button class="tab" data-tab="scanlog" onclick="switchTab('scanlog')">Scan Log</button>
+  </div>
+
+  <!-- Products tab -->
+  <div id="productsTab">
+    <div class="filters">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search products..." oninput="debouncedSearch()">
+
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('status', 'all', this)">All</button>
+        <button class="filter-btn" data-filter="in-stock" onclick="setFilter('status', 'in-stock', this)">In Stock</button>
+        <button class="filter-btn" data-filter="pre-order" onclick="setFilter('status', 'pre-order', this)">Pre-Order</button>
+        <button class="filter-btn" data-filter="pre-release" onclick="setFilter('status', 'pre-release', this)">Pre-Release</button>
+      </div>
+
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('retailer', 'all', this)">All Retailers</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'pokemoncenter', this)">Pokemon Center</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'amazon', this)">Amazon</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'walmart', this)">Walmart</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'target', this)">Target</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'bestbuy', this)">Best Buy</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'gamestop', this)">GameStop</button>
+        <button class="filter-btn" onclick="setFilter('retailer', 'tcgplayer', this)">TCGPlayer</button>
+      </div>
+
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('type', 'all', this)">All Types</button>
+        <button class="filter-btn" onclick="setFilter('type', 'booster-box', this)">Booster Box</button>
+        <button class="filter-btn" onclick="setFilter('type', 'elite-trainer-box', this)">ETB</button>
+        <button class="filter-btn" onclick="setFilter('type', 'booster-bundle', this)">Bundle</button>
+      </div>
+    </div>
+
+    <div class="product-grid" id="productGrid"></div>
+  </div>
+
+  <!-- Alerts tab -->
+  <div class="alerts-panel" id="alertsTab"></div>
+
+  <!-- Watchlist tab -->
+  <div class="watchlist-panel" id="watchlistTab">
+    <div class="watchlist-form">
+      <input type="text" class="search-input" id="watchKeyword" placeholder="Keyword (e.g. Scarlet & Violet)">
+      <select class="search-input" id="watchType" style="width:auto">
+        <option value="">Any Type</option>
+        <option value="booster-box">Booster Box</option>
+        <option value="elite-trainer-box">Elite Trainer Box</option>
+        <option value="booster-bundle">Booster Bundle</option>
+      </select>
+      <button class="scan-btn" onclick="addToWatchlist()" style="padding:8px 16px">+ Add</button>
+    </div>
+    <div id="watchlistItems"></div>
+  </div>
+
+  <!-- Scan log tab -->
+  <div class="scan-log-panel" id="scanlogTab">
+    <table class="log-table" id="scanLogTable">
+      <thead>
+        <tr><th>Time</th><th>Retailer</th><th>Status</th><th>Found</th><th>In Stock</th><th>Duration</th><th>Error</th></tr>
+      </thead>
+      <tbody id="scanLogBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let products = [];
+let alerts = [];
+let filters = { status: 'all', retailer: 'all', type: 'all', search: '' };
+let eventSource = null;
+
+// ── API calls ──────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  return res.json();
+}
+
+async function loadStats() {
+  const stats = await api('/api/stats');
+  document.getElementById('statTotal').textContent = stats.total_products || 0;
+  document.getElementById('statInStock').textContent = stats.in_stock || 0;
+  document.getElementById('statPreOrder').textContent = stats.pre_orders || 0;
+  document.getElementById('statPreRelease').textContent = stats.pre_releases || 0;
+  document.getElementById('statOOS').textContent = stats.out_of_stock || 0;
+  document.getElementById('statRetailers').textContent = stats.retailers_tracked || 0;
+}
+
+async function loadProducts() {
+  const params = new URLSearchParams();
+  if (filters.search) params.set('search', filters.search);
+  else if (filters.retailer !== 'all') params.set('retailer', filters.retailer);
+  else if (filters.status === 'in-stock') params.set('status', 'in-stock');
+  else if (filters.type !== 'all') params.set('type', filters.type);
+
+  products = await api(`/api/products?${params}`);
+  renderProducts();
+  document.getElementById('productCount').textContent = products.length;
+}
+
+async function loadAlerts() {
+  // Reuse products with alerts info from scan log
+  const scans = await api('/api/scans');
+  renderAlerts(scans);
+}
+
+async function loadWatchlist() {
+  const items = await api('/api/watchlist');
+  renderWatchlist(items);
+}
+
+async function loadScanLog() {
+  const scans = await api('/api/scans');
+  renderScanLog(scans);
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderProducts() {
+  const grid = document.getElementById('productGrid');
+  let filtered = products;
+
+  if (filters.status !== 'all') {
+    if (filters.status === 'in-stock') {
+      filtered = filtered.filter(p => p.status === 'in-stock' || p.status === 'pre-order');
+    } else {
+      filtered = filtered.filter(p => p.status === filters.status);
+    }
+  }
+  if (filters.retailer !== 'all') {
+    filtered = filtered.filter(p => p.retailer === filters.retailer);
+  }
+  if (filters.type !== 'all') {
+    filtered = filtered.filter(p => p.product_type === filters.type);
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1/-1">
+        <div class="icon">&#x1F50D;</div>
+        <h3>No products found</h3>
+        <p>Click "Scan Now" to fetch products from retailers, or adjust your filters.</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card" onclick="window.open('${escHtml(p.url)}', '_blank')">
+      <div class="card-header">
+        <span class="status-badge badge-${p.status}">${statusIcon(p.status)} ${statusLabel(p.status)}</span>
+        <span class="retailer-tag">${escHtml(p.retailer)}</span>
+      </div>
+      <div class="card-body">
+        <div class="product-name">${escHtml(p.name)}</div>
+        <div class="product-meta">
+          <span class="price ${p.price ? '' : 'na'}">${p.price ? '$' + p.price.toFixed(2) : 'Price N/A'}</span>
+          <span class="product-type">${typeLabel(p.product_type)}</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span>${p.set_name ? 'Set: ' + escHtml(p.set_name) : ''}</span>
+        <span>${p.last_checked ? 'Checked: ' + timeAgo(p.last_checked) : ''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAlerts(scans) {
+  const panel = document.getElementById('alertsTab');
+  const alertScans = scans.filter(s => s.in_stock_count > 0);
+
+  if (alertScans.length === 0) {
+    panel.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">&#x1F514;</div>
+        <h3>No alerts yet</h3>
+        <p>Alerts will appear here when products come back in stock or new pre-orders open.</p>
+      </div>`;
+    return;
+  }
+
+  panel.innerHTML = alertScans.map(s => `
+    <div class="alert-item">
+      <span class="alert-icon">&#x2705;</span>
+      <div>
+        <div class="alert-text"><strong>${escHtml(s.retailer)}</strong> scan found ${s.in_stock_count} in-stock item(s) out of ${s.products_found} products</div>
+        <div class="alert-time">${timeAgo(s.scanned_at)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderWatchlist(items) {
+  const container = document.getElementById('watchlistItems');
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">&#x1F440;</div>
+        <h3>Watchlist empty</h3>
+        <p>Add keywords above to get notified when matching products appear.</p>
+      </div>`;
+    return;
+  }
+  container.innerHTML = items.map(w => `
+    <div class="watchlist-item">
+      <div>
+        <strong>${escHtml(w.keyword)}</strong>
+        ${w.product_type ? `<span style="color:var(--text-muted); margin-left:8px">${typeLabel(w.product_type)}</span>` : ''}
+        ${w.retailer ? `<span style="color:var(--text-muted); margin-left:8px">${escHtml(w.retailer)}</span>` : ''}
+      </div>
+      <button class="remove-btn" onclick="removeFromWatchlist(${w.id})">Remove</button>
+    </div>
+  `).join('');
+}
+
+function renderScanLog(scans) {
+  const body = document.getElementById('scanLogBody');
+  body.innerHTML = scans.map(s => `
+    <tr>
+      <td>${timeAgo(s.scanned_at)}</td>
+      <td>${escHtml(s.retailer)}</td>
+      <td class="${s.status === 'success' ? 'success' : 'error'}">${s.status}</td>
+      <td>${s.products_found}</td>
+      <td>${s.in_stock_count}</td>
+      <td>${s.duration_ms}ms</td>
+      <td class="error">${escHtml(s.error_message || '')}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+async function triggerScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.classList.add('scanning');
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg> Scanning...';
+
+  try {
+    await api('/api/scan', { method: 'POST' });
+    await refreshAll();
+    showToast('Scan Complete', 'All retailers have been scanned.', 'success');
+  } catch (err) {
+    showToast('Scan Failed', err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('scanning');
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg> Scan Now';
+  }
+}
+
+function setFilter(group, value, btn) {
+  filters[group] = value;
+  // Update active state within the button's group
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts();
+}
+
+let searchTimeout;
+function debouncedSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    filters.search = document.getElementById('searchInput').value.trim();
+    loadProducts();
+  }, 300);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+
+  document.getElementById('productsTab').style.display = tab === 'products' ? '' : 'none';
+  document.getElementById('alertsTab').className = 'alerts-panel' + (tab === 'alerts' ? ' active' : '');
+  document.getElementById('watchlistTab').className = 'watchlist-panel' + (tab === 'watchlist' ? ' active' : '');
+  document.getElementById('scanlogTab').className = 'scan-log-panel' + (tab === 'scanlog' ? ' active' : '');
+
+  if (tab === 'alerts') loadAlerts();
+  if (tab === 'watchlist') loadWatchlist();
+  if (tab === 'scanlog') loadScanLog();
+}
+
+async function addToWatchlist() {
+  const keyword = document.getElementById('watchKeyword').value.trim();
+  if (!keyword) return;
+  await api('/api/watchlist', {
+    method: 'POST',
+    body: JSON.stringify({
+      keyword,
+      product_type: document.getElementById('watchType').value,
+    }),
+  });
+  document.getElementById('watchKeyword').value = '';
+  loadWatchlist();
+}
+
+async function removeFromWatchlist(id) {
+  await api(`/api/watchlist/${id}`, { method: 'DELETE' });
+  loadWatchlist();
+}
+
+// ── SSE for live updates ───────────────────────────────────────────────────
+function connectSSE() {
+  eventSource = new EventSource('/api/events');
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+
+  eventSource.onopen = () => {
+    dot.classList.add('connected');
+    text.textContent = 'Live';
+  };
+
+  eventSource.onerror = () => {
+    dot.classList.remove('connected');
+    text.textContent = 'Reconnecting...';
+    setTimeout(connectSSE, 5000);
+  };
+
+  eventSource.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+
+      if (data.type === 'alert') {
+        const a = data.alert;
+        showToast(
+          alertTypeLabel(a.alertType),
+          a.message,
+          a.alertType
+        );
+        // Request browser notification permission and send
+        if (Notification.permission === 'granted') {
+          new Notification(alertTypeLabel(a.alertType), {
+            body: a.message,
+            icon: '/favicon.ico',
+          });
+        }
+        document.getElementById('alertCount').textContent =
+          parseInt(document.getElementById('alertCount').textContent || '0') + 1;
+      }
+
+      if (data.type === 'scan-complete') {
+        refreshAll();
+      }
+    } catch {}
+  };
+}
+
+// ── Toasts ─────────────────────────────────────────────────────────────────
+function showToast(title, message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast alert-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${type.includes('stock') ? '&#x1F7E2;' : type.includes('pre-order') ? '&#x1F7E1;' : type.includes('prerelease') ? '&#x1F535;' : '&#x2139;&#xFE0F;'}</span>
+    <div class="toast-body">
+      <div class="toast-title">${escHtml(title)}</div>
+      <div class="toast-msg">${escHtml(message)}</div>
+    </div>
+    <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 8000);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function statusLabel(s) {
+  const map = { 'in-stock': 'In Stock', 'out-of-stock': 'Out of Stock', 'pre-order': 'Pre-Order', 'pre-release': 'Pre-Release', 'unknown': 'Unknown' };
+  return map[s] || s;
+}
+
+function statusIcon(s) {
+  const map = { 'in-stock': '&#x2705;', 'out-of-stock': '&#x274C;', 'pre-order': '&#x1F4E6;', 'pre-release': '&#x2728;', 'unknown': '&#x2753;' };
+  return map[s] || '';
+}
+
+function typeLabel(t) {
+  const map = { 'booster-box': 'Booster Box', 'elite-trainer-box': 'ETB', 'booster-bundle': 'Bundle' };
+  return map[t] || t;
+}
+
+function alertTypeLabel(t) {
+  const map = { 'back-in-stock': 'BACK IN STOCK!', 'pre-order-available': 'PRE-ORDER AVAILABLE!', 'new-prerelease': 'NEW PRE-RELEASE' };
+  return map[t] || 'ALERT';
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'Z');
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function refreshAll() {
+  await Promise.all([loadStats(), loadProducts()]);
+}
+
+async function init() {
+  // Request notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  connectSSE();
+  await refreshAll();
+}
+
+init();
+</script>
+</body>
+</html>
