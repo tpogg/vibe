@@ -157,6 +157,13 @@ def cmd_bot(args):
     bot_main()
 
 
+def cmd_web(args):
+    """Start the web UI."""
+    import uvicorn
+    print(f"\n  Vibe Web UI starting at http://localhost:{args.port}\n")
+    uvicorn.run("src.web:app", host=args.host, port=args.port, reload=False)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="vibe",
@@ -164,6 +171,12 @@ def main():
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Debug logging")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # vibe web [--port] [--host]
+    sub = subparsers.add_parser("web", help="Launch web UI (recommended)")
+    sub.add_argument("--port", type=int, default=8000, help="Port (default: 8000)")
+    sub.add_argument("--host", default="127.0.0.1", help="Host (default: 127.0.0.1)")
+    sub.set_defaults(func=cmd_web)
 
     # vibe bot [--no-upload]
     sub = subparsers.add_parser("bot", help="Run Discord bot (use /scrape in servers)")

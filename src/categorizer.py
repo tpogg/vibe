@@ -5,10 +5,10 @@ import shutil
 from pathlib import Path
 
 from .config import FILE_CATEGORIES, MAX_FILE_SIZE_MB
+from .progress import EventType, progress
 
 logger = logging.getLogger(__name__)
 
-# Extensions to skip (DCE export artifacts)
 _SKIP_EXTENSIONS = {".html", ".css"}
 
 
@@ -21,15 +21,13 @@ def _build_ext_map() -> dict[str, str]:
 
 
 def categorize_download(download_dir: Path, output_dir: Path) -> Path:
-    """Categorize files from bot downloads (channel-based subdirectories).
-
-    Input:  download_dir/channel_name/file.png
-    Output: output_dir/images/channel_name/file.png
-    """
+    """Categorize files from bot downloads (channel-based subdirectories)."""
     output_dir.mkdir(parents=True, exist_ok=True)
     ext_map = _build_ext_map()
     size_limit = MAX_FILE_SIZE_MB * 1024 * 1024 if MAX_FILE_SIZE_MB > 0 else 0
     stats: dict[str, int] = {}
+
+    progress.emit(EventType.CATEGORIZE_START, "Categorizing downloaded files...")
 
     for channel_dir in download_dir.iterdir():
         if not channel_dir.is_dir() or channel_dir.name.startswith("_"):
@@ -51,23 +49,30 @@ def categorize_download(download_dir: Path, output_dir: Path) -> Path:
             shutil.copy2(file_path, dest_path)
             stats[category] = stats.get(category, 0) + 1
 
-    _log_stats(stats)
+            progress.emit(
+                EventType.CATEGORIZE_FILE,
+                f"{file_path.name} → {category}",
+                filename=file_path.name, category=category,
+                totals=stats,
+            )
+
+    total = sum(stats.values())
+    progress.emit(
+        EventType.CATEGORIZE_DONE,
+        f"Categorized {total} files",
+        totals=stats, total=total,
+    )
     return output_dir
 
 
 def categorize_export(export_dir: Path, output_dir: Path) -> Path:
-    """Categorize files from a DiscordChatExporter export.
-
-    Walks the entire export tree, skips HTML/CSS artifacts, and sorts
-    media files by category into a flat structure.
-
-    Input:  export_dir/**/file.png
-    Output: output_dir/images/file.png
-    """
+    """Categorize files from a DiscordChatExporter export."""
     output_dir.mkdir(parents=True, exist_ok=True)
     ext_map = _build_ext_map()
     size_limit = MAX_FILE_SIZE_MB * 1024 * 1024 if MAX_FILE_SIZE_MB > 0 else 0
     stats: dict[str, int] = {}
+
+    progress.emit(EventType.CATEGORIZE_START, "Categorizing exported files...")
 
     for file_path in export_dir.rglob("*"):
         if not file_path.is_file():
@@ -87,7 +92,19 @@ def categorize_export(export_dir: Path, output_dir: Path) -> Path:
         shutil.copy2(file_path, dest_path)
         stats[category] = stats.get(category, 0) + 1
 
-    _log_stats(stats)
+        progress.emit(
+            EventType.CATEGORIZE_FILE,
+            f"{file_path.name} → {category}",
+            filename=file_path.name, category=category,
+            totals=stats,
+        )
+
+    total = sum(stats.values())
+    progress.emit(
+        EventType.CATEGORIZE_DONE,
+        f"Categorized {total} files",
+        totals=stats, total=total,
+    )
     return output_dir
 
 
@@ -102,13 +119,6 @@ def get_summary(organized_dir: Path) -> dict[str, int]:
             if count > 0:
                 summary[category_dir.name] = count
     return summary
-
-
-def _log_stats(stats: dict[str, int]):
-    total = sum(stats.values())
-    logger.info("Categorized %d files:", total)
-    for category, count in sorted(stats.items()):
-        logger.info("  %s: %d", category, count)
 
 
 def _deduplicate(path: Path) -> Path:

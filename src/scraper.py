@@ -9,6 +9,7 @@ import aiohttp
 import discord
 
 from .config import DOWNLOAD_DIR, MAX_CONCURRENT_DOWNLOADS, MAX_FILE_SIZE_MB
+from .progress import EventType, progress
 
 logger = logging.getLogger(__name__)
 
@@ -38,19 +39,28 @@ class MediaScraper:
         self.stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         msg_limit = limit if limit > 0 else None
 
-        tasks = []
+        channels = []
         for channel in guild.text_channels:
             perms = channel.permissions_for(guild.me)
             if not perms.read_messages or not perms.read_message_history:
-                logger.info("Skipping #%s — missing permissions", channel.name)
+                progress.emit(EventType.LOG, f"Skipping #{channel.name} — missing permissions")
                 continue
-            tasks.append(self._scrape_channel(channel, guild_dir, msg_limit))
+            channels.append(channel)
 
+        progress.emit(
+            EventType.SCRAPE_START,
+            f"Scraping {len(channels)} channels from {guild.name}",
+            guild=guild.name, channel_count=len(channels),
+        )
+
+        tasks = [self._scrape_channel(ch, guild_dir, msg_limit) for ch in channels]
         await asyncio.gather(*tasks)
 
-        logger.info(
-            "Guild '%s' scrape complete — downloaded: %d, skipped: %d, failed: %d",
-            guild.name, self.stats["downloaded"], self.stats["skipped"], self.stats["failed"],
+        progress.emit(
+            EventType.SCRAPE_DONE,
+            f"Scrape complete: {self.stats['downloaded']} downloaded, "
+            f"{self.stats['skipped']} skipped, {self.stats['failed']} failed",
+            **self.stats,
         )
         return guild_dir
 
@@ -63,11 +73,20 @@ class MediaScraper:
 
         self.stats = {"downloaded": 0, "skipped": 0, "failed": 0}
         msg_limit = limit if limit > 0 else None
+
+        progress.emit(
+            EventType.SCRAPE_START,
+            f"Scraping #{channel.name}",
+            guild=guild.name, channel_count=1,
+        )
+
         await self._scrape_channel(channel, guild_dir, msg_limit)
 
-        logger.info(
-            "Channel #%s scrape complete — downloaded: %d, skipped: %d, failed: %d",
-            channel.name, self.stats["downloaded"], self.stats["skipped"], self.stats["failed"],
+        progress.emit(
+            EventType.SCRAPE_DONE,
+            f"Scrape complete: {self.stats['downloaded']} downloaded, "
+            f"{self.stats['skipped']} skipped, {self.stats['failed']} failed",
+            **self.stats,
         )
         return guild_dir
 
@@ -78,7 +97,11 @@ class MediaScraper:
         channel_dir.mkdir(parents=True, exist_ok=True)
 
         count = 0
-        logger.info("Scraping #%s ...", channel.name)
+        progress.emit(
+            EventType.SCRAPE_CHANNEL_START,
+            f"Scanning #{channel.name}...",
+            channel=channel.name,
+        )
 
         try:
             async for message in channel.history(limit=msg_limit, oldest_first=True):
@@ -88,6 +111,7 @@ class MediaScraper:
                         dest_dir=channel_dir,
                         filename=attachment.filename,
                         file_size=attachment.size,
+                        channel_name=channel.name,
                     )
                     count += 1
 
@@ -97,17 +121,23 @@ class MediaScraper:
                             url=media["url"],
                             dest_dir=channel_dir,
                             filename=media["filename"],
+                            channel_name=channel.name,
                         )
                         count += 1
         except discord.Forbidden:
-            logger.warning("Lost access to #%s during scrape", channel.name)
+            progress.emit(EventType.LOG, f"Lost access to #{channel.name}")
         except discord.HTTPException as exc:
-            logger.error("HTTP error scraping #%s: %s", channel.name, exc)
+            progress.emit(EventType.LOG, f"HTTP error in #{channel.name}: {exc}")
 
-        logger.info("  #%s — processed %d items", channel.name, count)
+        progress.emit(
+            EventType.SCRAPE_CHANNEL_DONE,
+            f"#{channel.name} — {count} items processed",
+            channel=channel.name, items=count,
+        )
 
     async def _download_file(
-        self, url: str, dest_dir: Path, filename: str, file_size: int | None = None,
+        self, url: str, dest_dir: Path, filename: str,
+        file_size: int | None = None, channel_name: str = "",
     ):
         size_limit = MAX_FILE_SIZE_MB * 1024 * 1024 if MAX_FILE_SIZE_MB > 0 else 0
 
@@ -140,7 +170,12 @@ class MediaScraper:
                             f.write(chunk)
 
                 self.stats["downloaded"] += 1
-                logger.debug("Downloaded: %s", dest_path.name)
+                progress.emit(
+                    EventType.SCRAPE_FILE,
+                    f"Downloaded: {filename}",
+                    filename=filename, channel=channel_name,
+                    **self.stats,
+                )
 
             except Exception:
                 logger.exception("Error downloading %s", url)

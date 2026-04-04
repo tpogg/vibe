@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibe — Discord Media Scraper</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3348;
+    --text: #e2e8f0;
+    --text-dim: #8892b0;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --blue: #3b82f6;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .app {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #7c3aed, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  header p {
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card h2 .step {
+    background: var(--accent);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border 0.2s;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  input::placeholder {
+    color: var(--text-dim);
+    opacity: 0.5;
+  }
+
+  .field { margin-bottom: 14px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  button {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-danger {
+    background: var(--red);
+    color: white;
+  }
+  .btn-danger:hover { opacity: 0.85; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--border); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  /* Status badge */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .status-connected { background: rgba(34,197,94,0.15); color: var(--green); }
+  .status-connected .status-dot { background: var(--green); }
+  .status-disconnected { background: rgba(239,68,68,0.15); color: var(--red); }
+  .status-disconnected .status-dot { background: var(--red); }
+
+  /* Server grid */
+  .server-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .server-card {
+    background: var(--surface2);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .server-card:hover { border-color: var(--accent); }
+  .server-card.selected { border-color: var(--accent); background: rgba(124,58,237,0.1); }
+  .server-card .name { font-weight: 600; font-size: 0.9rem; }
+  .server-card .id { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
+
+  .server-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; font-weight: 700; color: var(--text-dim);
+    overflow: hidden;
+  }
+  .server-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Channel list */
+  .channel-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .channel-item {
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .channel-item:last-child { border-bottom: none; }
+  .channel-item .ch-name { color: var(--text); }
+  .channel-item .ch-cat { color: var(--text-dim); font-size: 0.75rem; }
+  .channel-item .ch-access {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .ch-yes { background: rgba(34,197,94,0.15); color: var(--green); }
+  .ch-no { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  /* Progress */
+  .progress-container {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+
+  .pipeline-stages {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .stage {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .stage .stage-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stage .stage-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .stage.active { border-color: var(--accent); }
+  .stage.done { border-color: var(--green); }
+  .stage.done .stage-label { color: var(--green); }
+
+  /* Log stream */
+  .log-stream {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 350px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .log-entry {
+    padding: 2px 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .log-time {
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .log-msg { color: var(--text); word-break: break-all; }
+  .log-msg.scrape { color: var(--blue); }
+  .log-msg.categorize { color: var(--orange); }
+  .log-msg.upload { color: var(--green); }
+  .log-msg.error { color: var(--red); }
+  .log-msg.done { color: var(--green); font-weight: 600; }
+
+  /* Checkbox */
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .checkbox-field input {
+    width: auto;
+    accent-color: var(--accent);
+  }
+  .checkbox-field label {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+
+  .hidden { display: none !important; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .error-msg {
+    color: var(--red);
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .summary-item {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .summary-item .cat-name {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .summary-item .cat-count {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Vibe</h1>
+    <p>Discord server media scraper with cloud upload</p>
+  </header>
+
+  <!-- Step 1: Connect -->
+  <div class="card" id="card-connect">
+    <h2><span class="step">1</span> Connect Bot</h2>
+    <div class="field">
+      <label>Discord Bot Token</label>
+      <input type="password" id="bot-token" placeholder="Paste your bot token here">
+    </div>
+    <div class="field">
+      <label>Your Discord User ID</label>
+      <input type="text" id="owner-id" placeholder="e.g. 123456789012345678">
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-connect" onclick="connectBot()">Connect</button>
+      <button class="btn-danger hidden" id="btn-disconnect" onclick="disconnectBot()">Disconnect</button>
+      <span class="status status-disconnected" id="conn-status">
+        <span class="status-dot"></span> Disconnected
+      </span>
+    </div>
+    <div class="error-msg hidden" id="connect-error"></div>
+  </div>
+
+  <!-- Step 2: Select Server -->
+  <div class="card hidden" id="card-servers">
+    <h2><span class="step">2</span> Select Server</h2>
+    <div class="server-grid" id="server-grid"></div>
+  </div>
+
+  <!-- Step 3: Configure & Scrape -->
+  <div class="card hidden" id="card-scrape">
+    <h2><span class="step">3</span> Configure & Scrape</h2>
+
+    <div id="channel-section">
+      <label>Channel (leave on "All" to scrape entire server)</label>
+      <select id="channel-select">
+        <option value="">All Channels</option>
+      </select>
+    </div>
+
+    <div class="row" style="margin-top: 14px;">
+      <div class="field">
+        <label>Message Limit (0 = all)</label>
+        <input type="number" id="msg-limit" value="0" min="0">
+      </div>
+      <div class="field">
+        <label>Max File Size MB (0 = unlimited)</label>
+        <input type="number" id="max-size" value="0" min="0">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Google Drive — Service Account JSON Path</label>
+      <input type="text" id="gdrive-creds" placeholder="e.g. credentials.json (leave empty to skip upload)">
+    </div>
+    <div class="field">
+      <label>Google Drive — Target Folder ID</label>
+      <input type="text" id="gdrive-folder" placeholder="e.g. 1aBcDeFgHiJkLmNoPqRsTuVwXyZ">
+    </div>
+
+    <div class="checkbox-field">
+      <input type="checkbox" id="skip-upload">
+      <label for="skip-upload">Skip cloud upload (local files only)</label>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-scrape" onclick="startScrape()">Start Scrape</button>
+      <button class="btn-danger hidden" id="btn-cancel" onclick="cancelScrape()">Cancel</button>
+    </div>
+    <div class="error-msg hidden" id="scrape-error"></div>
+  </div>
+
+  <!-- Step 4: Progress -->
+  <div class="card hidden" id="card-progress">
+    <h2><span class="step">4</span> Progress</h2>
+
+    <div class="pipeline-stages">
+      <div class="stage" id="stage-scrape">
+        <div class="stage-label">Download</div>
+        <div class="stage-value" id="stat-downloaded">0</div>
+      </div>
+      <div class="stage" id="stage-categorize">
+        <div class="stage-label">Categorize</div>
+        <div class="stage-value" id="stat-categorized">0</div>
+      </div>
+      <div class="stage" id="stage-upload">
+        <div class="stage-label">Upload</div>
+        <div class="stage-value" id="stat-uploaded">0</div>
+      </div>
+    </div>
+
+    <div class="log-stream" id="log-stream"></div>
+
+    <!-- Summary (shown after done) -->
+    <div class="hidden" id="summary-section">
+      <h3 style="margin-top: 16px; font-size: 0.95rem;">Results</h3>
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedGuildId = null;
+let selectedGuildName = null;
+let eventSource = null;
+
+// ── Connect ──────────────────────────────────────────────────────────
+async function connectBot() {
+  const token = document.getElementById('bot-token').value.trim();
+  const ownerId = document.getElementById('owner-id').value.trim();
+  if (!token || !ownerId) return;
+
+  setLoading('btn-connect', true);
+  hideError('connect-error');
+
+  try {
+    const res = await fetch('/api/connect', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ bot_token: token, owner_id: parseInt(ownerId) }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      showError('connect-error', data.error);
+      return;
+    }
+
+    // Connected
+    setConnected(true, data.bot_name);
+    renderServers(data.guilds);
+    show('card-servers');
+    startSSE();
+
+  } catch (e) {
+    showError('connect-error', 'Failed to connect: ' + e.message);
+  } finally {
+    setLoading('btn-connect', false);
+  }
+}
+
+async function disconnectBot() {
+  await fetch('/api/disconnect', { method: 'POST' });
+  setConnected(false);
+  hide('card-servers');
+  hide('card-scrape');
+  hide('card-progress');
+  selectedGuildId = null;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+}
+
+function setConnected(connected, name) {
+  const status = document.getElementById('conn-status');
+  const btnConnect = document.getElementById('btn-connect');
+  const btnDisconnect = document.getElementById('btn-disconnect');
+
+  if (connected) {
+    status.className = 'status status-connected';
+    status.innerHTML = '<span class="status-dot"></span> ' + (name || 'Connected');
+    btnConnect.classList.add('hidden');
+    btnDisconnect.classList.remove('hidden');
+  } else {
+    status.className = 'status status-disconnected';
+    status.innerHTML = '<span class="status-dot"></span> Disconnected';
+    btnConnect.classList.remove('hidden');
+    btnDisconnect.classList.add('hidden');
+  }
+}
+
+// ── Servers ──────────────────────────────────────────────────────────
+function renderServers(guilds) {
+  const grid = document.getElementById('server-grid');
+  grid.innerHTML = guilds.map(g => `
+    <div class="server-card" data-id="${g.id}" onclick="selectServer('${g.id}', '${g.name.replace(/'/g, "\\'")}')">
+      <div class="server-icon">
+        ${g.icon ? `<img src="${g.icon}" alt="">` : g.name.charAt(0).toUpperCase()}
+      </div>
+      <div class="name">${g.name}</div>
+      <div class="id">${g.id}</div>
+    </div>
+  `).join('');
+}
+
+async function selectServer(id, name) {
+  // Highlight
+  document.querySelectorAll('.server-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`.server-card[data-id="${id}"]`).classList.add('selected');
+  selectedGuildId = id;
+  selectedGuildName = name;
+
+  // Load channels
+  const res = await fetch(`/api/guilds/${id}/channels`);
+  const data = await res.json();
+  if (!data.ok) return;
+
+  const select = document.getElementById('channel-select');
+  select.innerHTML = '<option value="">All Channels</option>';
+  let currentCat = null;
+  for (const ch of data.channels) {
+    if (ch.category !== currentCat) {
+      currentCat = ch.category;
+    }
+    const prefix = ch.accessible ? '' : '[no access] ';
+    const cat = ch.category ? ` (${ch.category})` : '';
+    select.innerHTML += `<option value="${ch.id}" ${ch.accessible ? '' : 'disabled'}>${prefix}#${ch.name}${cat}</option>`;
+  }
+
+  show('card-scrape');
+}
+
+// ── Scrape ───────────────────────────────────────────────────────────
+async function startScrape() {
+  if (!selectedGuildId) return;
+
+  const channelId = document.getElementById('channel-select').value || null;
+  const limit = parseInt(document.getElementById('msg-limit').value) || 0;
+  const skipUpload = document.getElementById('skip-upload').checked;
+  const gdriveCreds = document.getElementById('gdrive-creds').value.trim();
+  const gdriveFolder = document.getElementById('gdrive-folder').value.trim();
+
+  hideError('scrape-error');
+  resetProgress();
+  show('card-progress');
+
+  try {
+    const res = await fetch('/api/scrape', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        guild_id: selectedGuildId,
+        channel_id: channelId,
+        limit: limit,
+        skip_upload: skipUpload || (!gdriveCreds && !gdriveFolder),
+        google_credentials_path: gdriveCreds,
+        google_drive_folder_id: gdriveFolder,
+      }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      showError('scrape-error', data.error);
+      return;
+    }
+
+    document.getElementById('btn-scrape').classList.add('hidden');
+    document.getElementById('btn-cancel').classList.remove('hidden');
+
+  } catch (e) {
+    showError('scrape-error', e.message);
+  }
+}
+
+async function cancelScrape() {
+  await fetch('/api/scrape/cancel', { method: 'POST' });
+  document.getElementById('btn-scrape').classList.remove('hidden');
+  document.getElementById('btn-cancel').classList.add('hidden');
+}
+
+// ── SSE Progress ─────────────────────────────────────────────────────
+function startSSE() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource('/api/progress');
+
+  eventSource.onmessage = (e) => {
+    const event = JSON.parse(e.data);
+    handleEvent(event);
+  };
+}
+
+function handleEvent(ev) {
+  const t = ev.type;
+  const d = ev.data || {};
+
+  // Update stage highlights
+  if (t.startsWith('scrape_')) {
+    document.getElementById('stage-scrape').classList.add('active');
+    document.getElementById('stage-scrape').classList.remove('done');
+  }
+  if (t === 'scrape_done') {
+    document.getElementById('stage-scrape').classList.remove('active');
+    document.getElementById('stage-scrape').classList.add('done');
+  }
+  if (t.startsWith('categorize_')) {
+    document.getElementById('stage-categorize').classList.add('active');
+    document.getElementById('stage-categorize').classList.remove('done');
+  }
+  if (t === 'categorize_done') {
+    document.getElementById('stage-categorize').classList.remove('active');
+    document.getElementById('stage-categorize').classList.add('done');
+  }
+  if (t.startsWith('upload_')) {
+    document.getElementById('stage-upload').classList.add('active');
+    document.getElementById('stage-upload').classList.remove('done');
+  }
+  if (t === 'upload_done') {
+    document.getElementById('stage-upload').classList.remove('active');
+    document.getElementById('stage-upload').classList.add('done');
+  }
+
+  // Update counters
+  if (d.downloaded !== undefined) {
+    document.getElementById('stat-downloaded').textContent = d.downloaded;
+  }
+  if (d.totals) {
+    const total = Object.values(d.totals).reduce((a, b) => a + b, 0);
+    document.getElementById('stat-categorized').textContent = total;
+  }
+  if (d.total !== undefined && t.startsWith('categorize')) {
+    document.getElementById('stat-categorized').textContent = d.total;
+  }
+  if (d.uploaded !== undefined) {
+    document.getElementById('stat-uploaded').textContent = d.uploaded;
+  }
+
+  // Log color class
+  let cls = '';
+  if (t.startsWith('scrape')) cls = 'scrape';
+  else if (t.startsWith('categorize')) cls = 'categorize';
+  else if (t.startsWith('upload')) cls = 'upload';
+  if (t === 'pipeline_error') cls = 'error';
+  if (t === 'pipeline_done') cls = 'done';
+
+  appendLog(ev.message, cls);
+
+  // Pipeline done
+  if (t === 'pipeline_done' || t === 'pipeline_error') {
+    document.getElementById('btn-scrape').classList.remove('hidden');
+    document.getElementById('btn-cancel').classList.add('hidden');
+
+    if (d.categories) {
+      renderSummary(d.categories);
+    }
+  }
+}
+
+function appendLog(msg, cls) {
+  const stream = document.getElementById('log-stream');
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${cls}">${escapeHtml(msg)}</span>`;
+  stream.appendChild(entry);
+  stream.scrollTop = stream.scrollHeight;
+}
+
+function resetProgress() {
+  document.getElementById('stat-downloaded').textContent = '0';
+  document.getElementById('stat-categorized').textContent = '0';
+  document.getElementById('stat-uploaded').textContent = '0';
+  document.getElementById('log-stream').innerHTML = '';
+  document.getElementById('summary-section').classList.add('hidden');
+  document.getElementById('summary-grid').innerHTML = '';
+  ['stage-scrape', 'stage-categorize', 'stage-upload'].forEach(id => {
+    document.getElementById(id).classList.remove('active', 'done');
+  });
+}
+
+function renderSummary(categories) {
+  const grid = document.getElementById('summary-grid');
+  grid.innerHTML = Object.entries(categories).map(([cat, count]) => `
+    <div class="summary-item">
+      <div class="cat-name">${cat}</div>
+      <div class="cat-count">${count}</div>
+    </div>
+  `).join('');
+  document.getElementById('summary-section').classList.remove('hidden');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideError(id) { document.getElementById(id).classList.add('hidden'); }
+
+function setLoading(id, loading) {
+  const btn = document.getElementById(id);
+  btn.disabled = loading;
+  if (loading) btn.dataset.origText = btn.textContent;
+  btn.textContent = loading ? 'Connecting...' : (btn.dataset.origText || 'Connect');
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

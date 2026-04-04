@@ -1,96 +1,108 @@
 # Vibe — Discord Server Media Scraper
 
-Two ways to download all media from Discord servers, categorize it, and upload it organized to Google Drive.
-
-## Two Modes
-
-### Mode 1: Bot (`vibe bot`)
-
-A Discord bot you invite to servers. Use `/scrape` slash commands to download, categorize, and upload — all from within Discord with live progress updates.
-
-```bash
-python -m src bot
-```
-
-Then in Discord: `/scrape` to grab everything, `/scrape channel:#art` for one channel, `/scrape-status` to check access.
-
-### Mode 2: CLI (`vibe scrape`)
-
-A one-shot CLI tool powered by [DiscordChatExporter](https://github.com/Tyrrrz/DiscordChatExporter). No bot to invite — uses your Discord token directly.
-
-```bash
-python -m src servers                      # list your servers
-python -m src scrape 123456789012345678     # scrape one
-```
+Download all media and files from any Discord server, categorize them, and upload organized to Google Drive. Three ways to use it:
 
 ## Quick Start
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # fill in your tokens
+cp .env.example .env
+
+# Launch the web UI (recommended)
+python -m src web
 ```
 
-**For bot mode:** set `DISCORD_BOT_TOKEN` + `OWNER_ID`
-**For CLI mode:** set `DISCORD_TOKEN` + install [DiscordChatExporter CLI](https://github.com/Tyrrrz/DiscordChatExporter/releases)
-**For cloud upload:** set `GOOGLE_CREDENTIALS_FILE` + `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+Open `http://localhost:8000`, paste your bot token, pick a server, and hit scrape. That's it.
 
-## Commands
+## Three Modes
 
-```
-vibe bot                          Start the Discord bot
-vibe bot --no-upload              Start bot without cloud upload
+### 1. Web UI (`vibe web`) — Recommended
 
-vibe servers                      List servers (CLI/DCE)
-vibe channels <server-id>         List channels in a server
-vibe scrape <server-id>           Export -> categorize -> upload
-vibe scrape <id> --channels X Y   Scrape specific channels only
-vibe scrape <id> --no-upload      Keep files local
+A full web dashboard where you enter credentials, pick servers/channels, and watch live progress as files are downloaded, categorized, and uploaded.
 
-vibe organize ./path/             Categorize existing files + upload
-vibe organize ./path/ --no-upload Categorize only, no upload
+```bash
+python -m src web              # http://localhost:8000
+python -m src web --port 3000  # custom port
 ```
 
-### Bot Slash Commands (in Discord)
+Features:
+- Enter bot token and user ID in the browser (no .env needed)
+- Browse servers and channels visually
+- Configure Google Drive credentials per-scrape
+- Live progress: download counter, categorization, upload status
+- Real-time log stream with color-coded pipeline stages
 
-| Command | Description |
+### 2. Discord Bot (`vibe bot`)
+
+Runs a persistent bot with `/scrape` slash commands in Discord.
+
+```bash
+python -m src bot
+```
+
+| Slash Command | Description |
 |---|---|
-| `/scrape` | Scrape entire server -> categorize -> upload |
-| `/scrape channel:#general` | Scrape one channel |
-| `/scrape skip_upload:True` | Local only, no cloud |
-| `/scrape limit:1000` | Scan last 1000 messages per channel |
+| `/scrape` | Scrape entire server |
+| `/scrape channel:#art` | Scrape one channel |
+| `/scrape skip_upload:True` | Local only |
 | `/scrape-status` | Show accessible channels |
 | `/scrape-cancel` | Stop in-progress scrape |
 
+### 3. CLI (`vibe scrape`)
+
+One-shot export via [DiscordChatExporter](https://github.com/Tyrrrz/DiscordChatExporter). No bot needed.
+
+```bash
+python -m src servers                  # list servers
+python -m src scrape 123456789         # export + categorize + upload
+python -m src organize ./my-files/     # categorize existing files
+```
+
 ## Setup
 
-### Discord Bot (Mode 1)
+### Prerequisites
 
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create application -> Bot -> enable **Message Content Intent**
+- **Python 3.11+**
+- **Discord bot token** — for web UI and bot modes ([Developer Portal](https://discord.com/developers/applications))
+- **DiscordChatExporter** — for CLI mode only ([releases](https://github.com/Tyrrrz/DiscordChatExporter/releases))
+
+### Discord Bot Setup
+
+1. [Discord Developer Portal](https://discord.com/developers/applications) -> New Application -> Bot
+2. Enable **Message Content** privileged intent
 3. OAuth2 URL Generator: scopes `bot` + `applications.commands`, permissions: Read Messages, Read Message History
-4. Invite bot to your server(s)
-5. Set `DISCORD_BOT_TOKEN` and `OWNER_ID` in `.env`
+4. Invite to your server(s)
 
-### DiscordChatExporter (Mode 2)
+### Google Drive Setup (Optional)
 
-1. [Download DCE CLI](https://github.com/Tyrrrz/DiscordChatExporter/releases) (needs .NET 8 runtime on Linux/macOS)
-2. Get your Discord token: browser DevTools (F12) -> Network -> `Authorization` header
-3. Set `DISCORD_TOKEN` and `DCE_PATH` in `.env`
-
-### Google Drive (Optional)
-
-1. [Google Cloud Console](https://console.cloud.google.com/) -> create project -> enable Drive API
+1. [Google Cloud Console](https://console.cloud.google.com/) -> new project -> enable Drive API
 2. Create Service Account -> download JSON key
-3. Share your target Drive folder with the service account email
-4. Set `GOOGLE_CREDENTIALS_FILE` and `GOOGLE_DRIVE_ROOT_FOLDER_ID` in `.env`
+3. Share target Drive folder with the service account email
 
-## Output
+## All Commands
+
+```
+python -m src web                         Launch web UI
+python -m src web --port 3000             Custom port
+python -m src bot                         Run Discord bot
+python -m src bot --no-upload             Bot without cloud upload
+python -m src servers                     List servers (DCE)
+python -m src channels <server-id>        List channels (DCE)
+python -m src scrape <server-id>          Full pipeline (DCE)
+python -m src scrape <id> --no-upload     Local only
+python -m src organize ./path/            Categorize existing files
+```
+
+## Output Structure
 
 ```
 organized/ServerName/
 ├── images/
-│   ├── photo.png
-│   └── meme.jpg
+│   ├── general/
+│   │   ├── photo.png
+│   │   └── meme.jpg
+│   └── art/
+│       └── drawing.png
 ├── videos/
 │   └── clip.mp4
 ├── audio/
@@ -101,5 +113,3 @@ organized/ServerName/
 ├── code/
 └── other/
 ```
-
-Bot mode preserves channel subfolders (`images/general/photo.png`). CLI mode uses a flat structure per category.

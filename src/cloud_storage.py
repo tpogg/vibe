@@ -8,34 +8,21 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 from .config import GOOGLE_CREDENTIALS_FILE, GOOGLE_DRIVE_ROOT_FOLDER_ID
+from .progress import EventType, progress
 
 logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-# Mapping of file extensions to MIME types for common media
 MIME_OVERRIDES = {
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".gif": "image/gif",
-    ".webp": "image/webp",
-    ".svg": "image/svg+xml",
-    ".mp4": "video/mp4",
-    ".mkv": "video/x-matroska",
-    ".avi": "video/x-msvideo",
-    ".mov": "video/quicktime",
-    ".webm": "video/webm",
-    ".mp3": "audio/mpeg",
-    ".wav": "audio/wav",
-    ".flac": "audio/flac",
-    ".ogg": "audio/ogg",
-    ".m4a": "audio/mp4",
-    ".pdf": "application/pdf",
-    ".zip": "application/zip",
-    ".json": "application/json",
-    ".txt": "text/plain",
-    ".csv": "text/csv",
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+    ".mp4": "video/mp4", ".mkv": "video/x-matroska", ".avi": "video/x-msvideo",
+    ".mov": "video/quicktime", ".webm": "video/webm",
+    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".flac": "audio/flac",
+    ".ogg": "audio/ogg", ".m4a": "audio/mp4",
+    ".pdf": "application/pdf", ".zip": "application/zip",
+    ".json": "application/json", ".txt": "text/plain", ".csv": "text/csv",
 }
 
 
@@ -51,10 +38,6 @@ class GoogleDriveUploader:
         self.stats = {"uploaded": 0, "failed": 0}
 
     def upload_directory(self, local_dir: Path, parent_folder_id: str = "") -> str:
-        """Upload an entire directory tree to Google Drive.
-
-        Returns the Google Drive folder ID of the root upload folder.
-        """
         parent_id = parent_folder_id or GOOGLE_DRIVE_ROOT_FOLDER_ID
         if not parent_id:
             raise ValueError(
@@ -62,18 +45,25 @@ class GoogleDriveUploader:
                 "Set GOOGLE_DRIVE_ROOT_FOLDER_ID in your .env file."
             )
 
+        # Count total files for progress
+        total_files = sum(1 for f in local_dir.rglob("*") if f.is_file())
+        progress.emit(
+            EventType.UPLOAD_START,
+            f"Uploading {total_files} files to Google Drive...",
+            total=total_files,
+        )
+
         root_id = self._create_folder(local_dir.name, parent_id)
         self._upload_tree(local_dir, root_id)
 
-        logger.info(
-            "Upload complete — uploaded: %d, failed: %d",
-            self.stats["uploaded"],
-            self.stats["failed"],
+        progress.emit(
+            EventType.UPLOAD_DONE,
+            f"Upload complete: {self.stats['uploaded']} uploaded, {self.stats['failed']} failed",
+            **self.stats,
         )
         return root_id
 
     def _upload_tree(self, local_dir: Path, drive_folder_id: str):
-        """Recursively upload files and subdirectories."""
         for item in sorted(local_dir.iterdir()):
             if item.is_dir():
                 sub_folder_id = self._create_folder(item.name, drive_folder_id)
@@ -82,12 +72,10 @@ class GoogleDriveUploader:
                 self._upload_file(item, drive_folder_id)
 
     def _create_folder(self, name: str, parent_id: str) -> str:
-        """Create a folder in Google Drive (or return cached ID if exists)."""
         cache_key = f"{parent_id}/{name}"
         if cache_key in self._folder_cache:
             return self._folder_cache[cache_key]
 
-        # Check if folder already exists
         query = (
             f"name = '{name}' and '{parent_id}' in parents "
             f"and mimeType = 'application/vnd.google-apps.folder' "
@@ -113,35 +101,28 @@ class GoogleDriveUploader:
                 .execute()
             )
             folder_id = folder["id"]
-            logger.debug("Created Drive folder: %s", name)
 
         self._folder_cache[cache_key] = folder_id
         return folder_id
 
     def _upload_file(self, file_path: Path, parent_id: str):
-        """Upload a single file to Google Drive."""
         try:
             mime_type = MIME_OVERRIDES.get(
                 file_path.suffix.lower(), "application/octet-stream"
             )
-
-            metadata = {
-                "name": file_path.name,
-                "parents": [parent_id],
-            }
-
-            media = MediaFileUpload(
-                str(file_path),
-                mimetype=mime_type,
-                resumable=True,
-            )
+            metadata = {"name": file_path.name, "parents": [parent_id]}
+            media = MediaFileUpload(str(file_path), mimetype=mime_type, resumable=True)
 
             self._service.files().create(
                 body=metadata, media_body=media, fields="id"
             ).execute()
 
             self.stats["uploaded"] += 1
-            logger.debug("Uploaded: %s", file_path.name)
+            progress.emit(
+                EventType.UPLOAD_FILE,
+                f"Uploaded: {file_path.name}",
+                filename=file_path.name, **self.stats,
+            )
 
         except Exception:
             logger.exception("Failed to upload %s", file_path.name)
