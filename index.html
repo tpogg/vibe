@@ -1,711 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VIBE TERMINAL v1.0</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Z truck.ING — Connecting Drivers & Owners</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --green: #00ff41;
-      --dim-green: #00aa2a;
-      --dark-green: #003b0e;
-      --bg: #0a0a0a;
-      --amber: #ffb000;
-      --red: #ff3c3c;
-      --cyan: #00e5ff;
-      --magenta: #ff00ff;
-    }
-
     body {
-      background: var(--bg);
-      color: var(--green);
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.5;
-      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #111;
+      background: #fff;
+      line-height: 1.6;
+    }
+
+    /* ── Navigation ─────────────────────────────────── */
+    nav {
       display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #scanlines {
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.15) 2px,
-        rgba(0,0,0,0.15) 4px
-      );
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    #crt-glow {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
-      pointer-events: none;
-      z-index: 9;
-    }
-
-    #terminal {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      overflow: hidden;
-    }
-
-    #output {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding-bottom: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--dim-green) transparent;
-    }
-
-    #output::-webkit-scrollbar { width: 4px; }
-    #output::-webkit-scrollbar-thumb { background: var(--dim-green); }
-
-    .line { white-space: pre-wrap; word-break: break-all; margin: 0; }
-    .line-green { color: var(--green); }
-    .line-dim { color: var(--dim-green); }
-    .line-amber { color: var(--amber); }
-    .line-red { color: var(--red); }
-    .line-cyan { color: var(--cyan); }
-    .line-magenta { color: var(--magenta); }
-    .line-white { color: #fff; }
-
-    #input-row {
-      display: flex;
+      justify-content: space-between;
       align-items: center;
-      border-top: 1px solid var(--dark-green);
-      padding-top: 10px;
-      margin-top: 4px;
-      flex-shrink: 0;
+      padding: 24px 48px;
+      border-bottom: 1px solid #e5e5e5;
     }
 
-    #prompt { color: var(--green); margin-right: 6px; white-space: nowrap; }
-
-    #input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--green);
-      font-family: inherit;
-      font-size: inherit;
-      caret-color: var(--green);
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      text-decoration: none;
+      color: #111;
     }
 
-    #input::selection { background: var(--dark-green); }
-
-    /* Matrix canvas overlay */
-    #matrix-canvas {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: black;
+    .logo span {
+      font-weight: 300;
     }
 
-    #matrix-exit {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 21;
-      color: var(--green);
-      font-family: inherit;
-      font-size: 12px;
-      opacity: 0.7;
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 32px;
     }
 
-    /* Snake game */
-    #snake-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: var(--bg);
+    nav a {
+      text-decoration: none;
+      color: #555;
+      font-size: 15px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    nav a:hover {
+      color: #111;
+    }
+
+    /* ── Hero ────────────────────────────────────────── */
+    .hero {
+      display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      text-align: center;
+      padding: 120px 24px 100px;
     }
 
-    #snake-header {
-      color: var(--green);
-      font-size: 18px;
+    .hero h1 {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: #555;
+      max-width: 540px;
+      margin-bottom: 40px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #111;
+      color: #fff;
+      border: 2px solid #111;
+    }
+
+    .btn-primary:hover {
+      background: #333;
+      border-color: #333;
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: #111;
+      border: 2px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+      border-color: #111;
+    }
+
+    /* ── Sections ────────────────────────────────────── */
+    section {
+      padding: 80px 48px;
+    }
+
+    .section-divider {
+      border-top: 1px solid #e5e5e5;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #999;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    /* ── Services Grid ──────────────────────────────── */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .service-card h3 {
+      font-size: 20px;
+      font-weight: 600;
       margin-bottom: 12px;
-      letter-spacing: 4px;
     }
 
-    #snake-score-display {
-      color: var(--amber);
-      margin-bottom: 8px;
-      font-size: 13px;
+    .service-card p {
+      color: #666;
+      font-size: 15px;
+      line-height: 1.7;
     }
 
-    #snake-canvas {
-      border: 1px solid var(--dim-green);
-      image-rendering: pixelated;
+    /* ── CTA / Contact ──────────────────────────────── */
+    .cta {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto;
     }
 
-    #snake-msg {
-      color: var(--red);
-      margin-top: 10px;
-      font-size: 12px;
-      height: 20px;
+    .cta h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
     }
 
-    #snake-controls {
-      color: var(--dim-green);
-      margin-top: 8px;
-      font-size: 11px;
+    .cta p {
+      color: #555;
+      font-size: 17px;
+      margin-bottom: 32px;
     }
 
-    /* Typewriter blink */
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .cursor::after { content: '█'; animation: blink 1s infinite; margin-left: 1px; }
+    /* ── Footer ─────────────────────────────────────── */
+    footer {
+      border-top: 1px solid #e5e5e5;
+      padding: 32px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #999;
+    }
 
-    /* ASCII art colors */
-    .logo { color: var(--green); }
+    footer a {
+      color: #999;
+      text-decoration: none;
+    }
 
-    /* Progress bar animation */
-    @keyframes fill { from{width:0} to{width:100%} }
+    footer a:hover {
+      color: #111;
+    }
 
-    #fortune-display {
-      border: 1px solid var(--dim-green);
-      padding: 10px 16px;
-      margin: 4px 0;
-      color: var(--amber);
-      position: relative;
+    /* ── Responsive ─────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px 24px;
+      }
+
+      nav ul {
+        gap: 20px;
+      }
+
+      .hero {
+        padding: 80px 24px 60px;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .hero p {
+        font-size: 17px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+        max-width: 280px;
+      }
+
+      .btn {
+        text-align: center;
+      }
+
+      section {
+        padding: 60px 24px;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr;
+        gap: 36px;
+      }
+
+      .cta h2 {
+        font-size: 28px;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+        padding: 24px;
+      }
     }
   </style>
 </head>
 <body>
 
-<div id="scanlines"></div>
-<div id="crt-glow"></div>
+  <!-- Navigation -->
+  <nav>
+    <a href="/" class="logo">Z truck<span>.ING</span></a>
+    <ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
 
-<canvas id="matrix-canvas"></canvas>
-<div id="matrix-exit">[ press ESC or Q to exit matrix ]</div>
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Bridging the gap between<br>drivers and owners.</h1>
+    <p>Z truck.ING connects truck drivers with fleet owners and delivers software solutions built for the trucking industry.</p>
+    <div class="hero-buttons">
+      <a href="#contact" class="btn btn-primary">Get in Touch</a>
+      <a href="#services" class="btn btn-secondary">Our Services</a>
+    </div>
+  </section>
 
-<div id="snake-overlay">
-  <div id="snake-header">S N A K E</div>
-  <div id="snake-score-display">SCORE: 0 | HIGH SCORE: 0</div>
-  <canvas id="snake-canvas" width="400" height="400"></canvas>
-  <div id="snake-msg"></div>
-  <div id="snake-controls">WASD / ARROW KEYS to move | ESC to quit</div>
-</div>
+  <!-- Services -->
+  <section id="services" class="section-divider">
+    <div class="section-title">What We Do</div>
+    <div class="services-grid">
+      <div class="service-card">
+        <h3>Driver & Owner Matching</h3>
+        <p>We connect qualified truck drivers with fleet owners looking for reliable partners. Simple, direct, no middleman.</p>
+      </div>
+      <div class="service-card">
+        <h3>Software Solutions</h3>
+        <p>Custom-built tools for fleet management, logistics, and operations designed specifically for the trucking industry.</p>
+      </div>
+      <div class="service-card">
+        <h3>B2B Services</h3>
+        <p>Business-to-business integrations and solutions that streamline how trucking companies work with each other.</p>
+      </div>
+    </div>
+  </section>
 
-<div id="terminal">
-  <div id="output"></div>
-  <div id="input-row">
-    <span id="prompt">visitor@vibe:~$</span>
-    <input id="input" type="text" autocomplete="off" autofocus spellcheck="false" />
-  </div>
-</div>
+  <!-- About -->
+  <section id="about" class="section-divider">
+    <div class="section-title">About</div>
+    <div class="cta">
+      <p>Z truck.ING was built to solve a simple problem: drivers need owners, owners need drivers, and everyone needs better software. We are here to bridge that gap.</p>
+    </div>
+  </section>
 
-<script>
-// ─── Terminal engine ──────────────────────────────────────────────────────────
-const output = document.getElementById('output');
-const input  = document.getElementById('input');
-const history = [];
-let histIdx = -1;
+  <!-- Contact / CTA -->
+  <section id="contact" class="section-divider">
+    <div class="cta">
+      <h2>Let's work together.</h2>
+      <p>Whether you're a driver, fleet owner, or business looking for trucking software solutions — we'd love to hear from you.</p>
+      <a href="mailto:contact@ztruck.ing" class="btn btn-primary">contact@ztruck.ing</a>
+    </div>
+  </section>
 
-function print(text, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.textContent = text;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
-  });
-}
+  <!-- Footer -->
+  <footer>
+    <span>&copy; 2026 Z truck.ING. All rights reserved.</span>
+    <a href="https://ztruck.ing">ztruck.ing</a>
+  </footer>
 
-function printRaw(html, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.innerHTML = html;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
-  });
-}
-
-async function printLines(lines, cls = 'line-green', baseDelay = 0, step = 0) {
-  for (let i = 0; i < lines.length; i++) {
-    await print(lines[i], cls, baseDelay + i * step);
-  }
-}
-
-function blank(delay = 0) { return print('', 'line-green', delay); }
-
-function echoCmd(cmd) {
-  print(`visitor@vibe:~$ ${cmd}`, 'line-dim');
-}
-
-// ─── Boot sequence ────────────────────────────────────────────────────────────
-const LOGO = [
-  '██╗   ██╗██╗██████╗ ███████╗',
-  '██║   ██║██║██╔══██╗██╔════╝',
-  '██║   ██║██║██████╔╝█████╗  ',
-  '╚██╗ ██╔╝██║██╔══██╗██╔══╝  ',
-  ' ╚████╔╝ ██║██████╔╝███████╗',
-  '  ╚═══╝  ╚═╝╚═════╝ ╚══════╝',
-  '  T E R M I N A L   v 1 . 0 ',
-];
-
-async function boot() {
-  await print('Initializing VIBE OS...', 'line-dim', 0);
-  await print('[████████████████████] 100%  OK', 'line-dim', 400);
-  await blank(600);
-
-  for (let i = 0; i < LOGO.length; i++) {
-    await print(LOGO[i], 'line-green', 700 + i * 60);
-  }
-
-  await blank(1200);
-  await print('Welcome. Type  help  to see available commands.', 'line-cyan', 1300);
-  await blank(1350);
-  input.focus();
-}
-
-// ─── Commands ─────────────────────────────────────────────────────────────────
-const COMMANDS = {};
-
-COMMANDS.help = async () => {
-  const cmds = [
-    ['help',    'show this message'],
-    ['about',   'who is this?'],
-    ['skills',  'tech stack & skills'],
-    ['projects','featured projects'],
-    ['contact', 'get in touch'],
-    ['fortune', 'random wisdom'],
-    ['matrix',  'enter the matrix'],
-    ['snake',   'play snake'],
-    ['weather', 'fake weather report'],
-    ['hack',    'look like a hacker (very important)'],
-    ['clear',   'clear the terminal'],
-    ['date',    'show current date/time'],
-    ['whoami',  'who are you?'],
-  ];
-  await blank();
-  await print('┌─ AVAILABLE COMMANDS ──────────────────────────┐', 'line-cyan');
-  for (const [cmd, desc] of cmds) {
-    await print(`│  ${cmd.padEnd(12)}  ${desc.padEnd(32)} │`, 'line-cyan');
-  }
-  await print('└───────────────────────────────────────────────┘', 'line-cyan');
-  await blank();
-};
-
-COMMANDS.about = async () => {
-  await blank();
-  const lines = [
-    '  ╔══════════════════════════════════════╗',
-    '  ║           ABOUT THE OPERATOR         ║',
-    '  ╠══════════════════════════════════════╣',
-    '  ║  NAME     : vibe.operator            ║',
-    '  ║  STATUS   : caffeine-dependent       ║',
-    '  ║  LOCATION : somewhere on the grid    ║',
-    '  ║  MISSION  : build cool things        ║',
-    '  ║  WEAKNESS : shiny new frameworks     ║',
-    '  ╚══════════════════════════════════════╝',
-  ];
-  await printLines(lines, 'line-cyan', 0, 40);
-  await blank();
-  await print('  A developer who believes good software should feel alive.', 'line-green');
-  await print('  This terminal is proof of concept #1.', 'line-green');
-  await blank();
-};
-
-COMMANDS.skills = async () => {
-  await blank();
-  const skills = [
-    { label: 'JavaScript / TypeScript', pct: 92, color: 'line-amber' },
-    { label: 'Python                  ', pct: 85, color: 'line-cyan' },
-    { label: 'Rust                    ', pct: 60, color: 'line-green' },
-    { label: 'CSS / Design            ', pct: 78, color: 'line-magenta' },
-    { label: 'Systems / Infra         ', pct: 70, color: 'line-amber' },
-    { label: 'Vibes                   ', pct: 100, color: 'line-green' },
-  ];
-
-  await print('  SKILL MATRIX:', 'line-cyan');
-  await blank();
-
-  for (const s of skills) {
-    const bar = '█'.repeat(Math.floor(s.pct / 5)) + '░'.repeat(20 - Math.floor(s.pct / 5));
-    await print(`  ${s.label}  [${bar}] ${s.pct}%`, s.color);
-  }
-  await blank();
-};
-
-COMMANDS.projects = async () => {
-  await blank();
-  const projects = [
-    { name: 'VIBE TERMINAL', tech: 'HTML/CSS/JS', desc: 'Retro terminal portfolio. You\'re in it.' },
-    { name: 'GRID ENGINE',   tech: 'Rust/WASM',   desc: 'Procedural world gen in the browser.' },
-    { name: 'SIGNAL BOT',    tech: 'Python',       desc: 'Discord bot that summarizes your server.' },
-    { name: 'NEON DB',       tech: 'TypeScript',   desc: 'Tiny in-memory document store.' },
-    { name: '???',           tech: '???',          desc: 'Something is cooking. Stay tuned.' },
-  ];
-
-  for (const p of projects) {
-    await print(`┌─[ ${p.name} ]`, 'line-magenta');
-    await print(`│  tech : ${p.tech}`, 'line-dim');
-    await print(`│  desc : ${p.desc}`, 'line-green');
-    await print('└─────────────────────────────────────────────', 'line-magenta');
-    await blank();
-  }
-};
-
-COMMANDS.contact = async () => {
-  await blank();
-  await print('  ┌─ CONTACT ────────────────────────────────┐', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  │  github   : github.com/tpogg/vibe        │', 'line-amber');
-  await print('  │  email    : hello@vibe.terminal          │', 'line-amber');
-  await print('  │  matrix   : @operator:matrix.org         │', 'line-amber');
-  await print('  │  vibe     : immaculate                   │', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  └──────────────────────────────────────────┘', 'line-amber');
-  await blank();
-};
-
-const FORTUNES = [
-  'The best code is the code you never have to write.',
-  'It works on my machine. Ship the machine.',
-  'Any fool can write code a computer understands. Write code humans understand.',
-  'Debugging is like being a detective in a crime movie where you are also the murderer.',
-  'The first 90% takes 90% of the time. The last 10% takes the other 90%.',
-  'Always code as if the person maintaining your code is a violent psychopath who knows where you live.',
-  'Premature optimization is the root of all evil. But so is premature abstraction.',
-  'There are 2 hard problems in computer science: caching, naming things, and off-by-one errors.',
-  'A bug in production is worth two in development.',
-  'The cloud is just someone else\'s computer — and it\'s on fire.',
-  'Ship fast, but not so fast you forget to test.',
-  'The best feature is the one your users actually use.',
-  '"Works for me" is not a valid deployment strategy.',
-  'Every system eventually becomes a distributed system.',
-  'You ain\'t gonna need it — until you do.',
-  'Write tests first, regret later — but less.',
-];
-
-COMMANDS.fortune = async () => {
-  const f = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-  await blank();
-  await print('  ╔══ FORTUNE ═══════════════════════════════════════╗', 'line-amber');
-  const words = f.split(' ');
-  let line = '  ║  ';
-  for (const w of words) {
-    if ((line + w).length > 54) {
-      await print(line.padEnd(55) + '║', 'line-amber');
-      line = '  ║  ' + w + ' ';
-    } else {
-      line += w + ' ';
-    }
-  }
-  if (line.trim() !== '║') {
-    await print(line.padEnd(55) + '║', 'line-amber');
-  }
-  await print('  ╚══════════════════════════════════════════════════╝', 'line-amber');
-  await blank();
-};
-
-COMMANDS.date = async () => {
-  const now = new Date();
-  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' };
-  await blank();
-  await print('  ' + now.toLocaleString('en-US', opts), 'line-cyan');
-  await print('  UNIX: ' + Math.floor(now.getTime()/1000), 'line-dim');
-  await blank();
-};
-
-COMMANDS.whoami = async () => {
-  await blank();
-  await print('  visitor', 'line-green');
-  await print('  groups: users, curious, potentially_dangerous', 'line-dim');
-  await blank();
-};
-
-COMMANDS.weather = async () => {
-  const conditions = ['NEON RAIN', 'DIGITAL FOG', 'BINARY SUNSHINE', 'CYBER OVERCAST', 'GLITCH STORM'];
-  const cond = conditions[Math.floor(Math.random() * conditions.length)];
-  const temp = (Math.random() * 30 + 10).toFixed(1);
-  const humidity = Math.floor(Math.random() * 60 + 30);
-  const wind = Math.floor(Math.random() * 50 + 5);
-
-  await blank();
-  await print('  WEATHER REPORT :: THE GRID', 'line-cyan');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print(`  Condition  : ${cond}`, 'line-amber');
-  await print(`  Temp       : ${temp}°C`, 'line-green');
-  await print(`  Humidity   : ${humidity}%`, 'line-green');
-  await print(`  Wind       : ${wind} km/h`, 'line-green');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print('  forecast   : 100% chance of staying inside', 'line-dim');
-  await blank();
-};
-
-COMMANDS.hack = async () => {
-  await blank();
-  await print('  Initiating hack sequence...', 'line-red');
-  const fakeLines = [
-    'Scanning network interfaces...',
-    'Bypassing firewall... ████████ DONE',
-    'Injecting payload into mainframe...',
-    'Decrypting AES-256 keys... just kidding',
-    'Accessing NSA backdoor... ERROR: backdoor too obvious',
-    'Pivoting through 7 proxies...',
-    'Rooting target system...',
-    'Uploading "totally_not_malware.exe"...',
-    'Covering tracks... rm -rf /var/log/*',
-    '> ACCESS GRANTED',
-    '',
-    '  just kidding. this is art.',
-  ];
-  for (let i = 0; i < fakeLines.length; i++) {
-    await print('  ' + fakeLines[i], i === fakeLines.length - 3 ? 'line-red' : i === fakeLines.length -1 ? 'line-dim' : 'line-green', i * 120);
-  }
-  await blank(fakeLines.length * 120 + 200);
-};
-
-COMMANDS.clear = async () => {
-  output.innerHTML = '';
-};
-
-// ─── Matrix ───────────────────────────────────────────────────────────────────
-COMMANDS.matrix = () => {
-  const canvas = document.getElementById('matrix-canvas');
-  const matExit = document.getElementById('matrix-exit');
-  canvas.style.display = 'block';
-  matExit.style.display = 'block';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
-
-  const fontSize = 14;
-  const cols = Math.floor(canvas.width / fontSize);
-  const drops = Array(cols).fill(1);
-  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&';
-
-  let animId;
-  function draw() {
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00ff41';
-    ctx.font = fontSize + 'px monospace';
-    for (let i = 0; i < drops.length; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
-    animId = requestAnimationFrame(draw);
-  }
-  animId = requestAnimationFrame(draw);
-
-  function exitMatrix(e) {
-    if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
-      cancelAnimationFrame(animId);
-      canvas.style.display = 'none';
-      matExit.style.display = 'none';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      document.removeEventListener('keydown', exitMatrix);
-      input.focus();
-      print('  [ exited matrix ]', 'line-dim');
-    }
-  }
-  document.addEventListener('keydown', exitMatrix);
-  print('  [ matrix mode — press ESC or Q to exit ]', 'line-dim');
-};
-
-// ─── Snake ────────────────────────────────────────────────────────────────────
-COMMANDS.snake = () => {
-  const overlay = document.getElementById('snake-overlay');
-  const canvas  = document.getElementById('snake-canvas');
-  const scoreEl = document.getElementById('snake-score-display');
-  const msgEl   = document.getElementById('snake-msg');
-  overlay.style.display = 'flex';
-
-  const CELL = 20;
-  const COLS = 20;
-  const ROWS = 20;
-  const ctx  = canvas.getContext('2d');
-
-  let snake, dir, nextDir, food, score, highScore = 0, gameLoop, alive;
-
-  function reset() {
-    snake   = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
-    dir     = {x:1,y:0};
-    nextDir = {x:1,y:0};
-    food    = randomFood();
-    score   = 0;
-    alive   = true;
-    msgEl.textContent = '';
-    updateScore();
-  }
-
-  function randomFood() {
-    let f;
-    do {
-      f = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-    } while (snake.some(s => s.x===f.x && s.y===f.y));
-    return f;
-  }
-
-  function updateScore() {
-    scoreEl.textContent = `SCORE: ${score} | HIGH SCORE: ${highScore}`;
-  }
-
-  function draw() {
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // grid
-    ctx.strokeStyle = '#001a05';
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        ctx.strokeRect(c*CELL, r*CELL, CELL, CELL);
-      }
-    }
-
-    // food
-    ctx.fillStyle = '#ff3c3c';
-    ctx.fillRect(food.x*CELL+2, food.y*CELL+2, CELL-4, CELL-4);
-
-    // snake
-    for (let i = 0; i < snake.length; i++) {
-      const s = snake[i];
-      ctx.fillStyle = i===0 ? '#00ff41' : '#00aa2a';
-      ctx.fillRect(s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2);
-    }
-  }
-
-  function step() {
-    dir = nextDir;
-    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-        snake.some(s => s.x===head.x && s.y===head.y)) {
-      alive = false;
-      if (score > highScore) highScore = score;
-      updateScore();
-      clearInterval(gameLoop);
-      msgEl.textContent = `GAME OVER — SCORE: ${score}  [ press R to restart ]`;
-      return;
-    }
-
-    snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score += 10;
-      updateScore();
-      food = randomFood();
-    } else {
-      snake.pop();
-    }
-    draw();
-  }
-
-  function onKey(e) {
-    const map = {
-      ArrowUp:'U', ArrowDown:'D', ArrowLeft:'L', ArrowRight:'R',
-      w:'U', s:'D', a:'L', d:'R',
-      W:'U', S:'D', A:'L', D:'R',
-    };
-    const d = map[e.key];
-    if (d) {
-      e.preventDefault();
-      const dirs = {U:{x:0,y:-1},D:{x:0,y:1},L:{x:-1,y:0},R:{x:1,y:0}};
-      const nd = dirs[d];
-      if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
-    }
-    if (e.key === 'r' || e.key === 'R') {
-      clearInterval(gameLoop);
-      reset();
-      draw();
-      gameLoop = setInterval(step, 120);
-    }
-    if (e.key === 'Escape') {
-      clearInterval(gameLoop);
-      document.removeEventListener('keydown', onKey);
-      overlay.style.display = 'none';
-      input.focus();
-      print('  [ snake exited ]', 'line-dim');
-    }
-  }
-
-  document.addEventListener('keydown', onKey);
-  reset();
-  draw();
-  gameLoop = setInterval(step, 120);
-};
-
-// ─── Input handling ───────────────────────────────────────────────────────────
-input.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') {
-    const cmd = input.value.trim().toLowerCase();
-    input.value = '';
-    histIdx = -1;
-
-    echoCmd(cmd);
-
-    if (!cmd) return;
-    history.unshift(cmd);
-
-    if (COMMANDS[cmd]) {
-      await COMMANDS[cmd]();
-    } else {
-      await blank();
-      await print(`  command not found: ${cmd}`, 'line-red');
-      await print('  type  help  for available commands', 'line-dim');
-      await blank();
-    }
-  }
-
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (histIdx < history.length - 1) histIdx++;
-    input.value = history[histIdx] || '';
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (histIdx > 0) histIdx--;
-    else { histIdx = -1; input.value = ''; }
-    input.value = histIdx >= 0 ? history[histIdx] : '';
-  }
-
-  if (e.key === 'l' && e.ctrlKey) {
-    e.preventDefault();
-    await COMMANDS.clear();
-  }
-});
-
-// keep focus on input
-document.addEventListener('click', () => {
-  if (document.getElementById('snake-overlay').style.display === 'flex') return;
-  if (document.getElementById('matrix-canvas').style.display === 'block') return;
-  input.focus();
-});
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-boot();
-</script>
 </body>
 </html>
