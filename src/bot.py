@@ -17,6 +17,7 @@ from src.enrichment import DomainEnricher, EnrichedDomain
 from src.scorer import rank_domains, score_domain
 from src.watchlist import Watchlist
 from src.purchaser import DomainPurchaser
+from src.discord_webhook import send_discord_alert, send_scan_summary
 
 console = Console()
 running = True
@@ -123,6 +124,11 @@ def run_scan():
             console.print(f"\n[bold red]{len(expiring)} high-value domains pending deletion![/bold red]")
             for d in expiring[:5]:
                 console.print(f"  -> {d['name']} (score: {d['score']})")
+
+        # 7. Send Discord notifications
+        send_scan_summary(len(raw_domains), len(watchlist), top)
+        if expiring:
+            send_discord_alert(expiring, title="Domains Dropping Soon")
 
     except Exception as e:
         msg = f"Scan error: {e}"
