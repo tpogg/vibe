@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { server, colors, brand } = require('../config');
 const { updateGuildSetting } = require('../utils/database');
-const { generateBanner, generateIcon } = require('../utils/canvas');
 const { vibeEmbed, successEmbed } = require('../utils/embeds');
 
 module.exports = {
@@ -21,21 +20,7 @@ module.exports = {
       // ─── Step 1: Set server icon & banner ────────────────────────────
       await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', '```ansi\n\x1b[32m> Generating server branding...\x1b[0m\n```')] });
 
-      try {
-        const icon = generateIcon('V');
-        await guild.setIcon(icon);
-        log.push('✓ Server icon set');
-      } catch (e) {
-        log.push('⚠ Could not set server icon (may need Boost level)');
-      }
-
-      try {
-        const banner = generateBanner('VIBE');
-        await guild.setBanner(banner);
-        log.push('✓ Server banner set');
-      } catch (e) {
-        log.push('⚠ Could not set banner (requires Boost Level 2)');
-      }
+      log.push('▸ Icon & banner: set these manually in Server Settings');
 
       // ─── Step 2: Create roles ────────────────────────────────────────
       await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Creating roles...\x1b[0m\n\`\`\``)] });
