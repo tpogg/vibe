@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: pokemon-card-tracker
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: SCAN_INTERVAL_MINUTES
+        value: 5
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+    disk:
+      name: tracker-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
