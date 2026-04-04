@@ -20,6 +20,7 @@ from src.purchaser import DomainPurchaser
 
 console = Console()
 running = True
+last_scan_status = {"domains_found": 0, "domains_tracked": 0, "last_scan": "never", "errors": []}
 
 
 def signal_handler(sig, frame):
@@ -61,55 +62,72 @@ def print_table(domains: list[dict], title: str = "Domain Watchlist"):
 
 def run_scan():
     """Execute one full scan cycle: scrape -> enrich -> score -> watchlist."""
+    global last_scan_status
+    from datetime import datetime, timezone
+
     console.rule("[bold blue]Starting Domain Scan")
+    last_scan_status["errors"] = []
 
-    # 1. Scrape expired domains
-    console.print("[dim]Scraping expired domains...[/dim]")
-    scraper = ExpiredDomainsScraper()
-    raw_domains = scraper.fetch_all(pages_per_category=3)
+    try:
+        # 1. Scrape expired domains
+        console.print("[dim]Scraping expired domains...[/dim]")
+        scraper = ExpiredDomainsScraper()
+        raw_domains = scraper.fetch_all(pages_per_category=5)
 
-    if not raw_domains:
-        console.print("[yellow]No domains found in this scan. Check ED_USERNAME/ED_PASSWORD env vars.[/yellow]")
-        return
+        last_scan_status["domains_found"] = len(raw_domains)
+        last_scan_status["last_scan"] = datetime.now(timezone.utc).isoformat()
 
-    console.print(f"[green]Found {len(raw_domains)} raw domains[/green]")
-    # Log first few for debugging
-    for d in raw_domains[:5]:
-        console.print(f"  [dim]sample: {d.name} BL={d.backlinks} DP={d.domain_pop} TF={d.trust_flow}[/dim]")
+        if not raw_domains:
+            msg = "No domains found. Check ED_USERNAME/ED_PASSWORD env vars."
+            console.print(f"[yellow]{msg}[/yellow]")
+            last_scan_status["errors"].append(msg)
+            return
 
-    # 2. Enrich with SEO data
-    console.print("[dim]Enriching with RDAP + PageRank data...[/dim]")
-    enricher = DomainEnricher()
-    enriched = enricher.enrich_batch(raw_domains)
-    console.print(f"[green]Enriched {len(enriched)} domains[/green]")
+        console.print(f"[green]Found {len(raw_domains)} raw domains[/green]")
+        for d in raw_domains[:5]:
+            console.print(f"  [dim]sample: {d.name} BL={d.backlinks} DP={d.domain_pop} TF={d.trust_flow}[/dim]")
 
-    # 3. Score and rank
-    ranked = rank_domains(enriched)
-    console.print(f"[green]{len(ranked)} domains passed minimum thresholds[/green]")
+        # 2. Enrich with SEO data
+        console.print("[dim]Enriching with RDAP + PageRank data...[/dim]")
+        enricher = DomainEnricher()
+        enriched = enricher.enrich_batch(raw_domains)
+        console.print(f"[green]Enriched {len(enriched)} domains[/green]")
 
-    if not ranked:
-        console.print("[yellow]No domains met the minimum criteria.[/yellow]")
-        return
+        # 3. Score and rank
+        ranked = rank_domains(enriched)
+        console.print(f"[green]{len(ranked)} domains passed minimum thresholds[/green]")
 
-    # 4. Update watchlist
-    watchlist = Watchlist()
-    new_count = 0
-    for domain in ranked:
-        if watchlist.add(domain):
-            new_count += 1
+        if not ranked:
+            msg = f"0/{len(enriched)} domains passed filters."
+            console.print(f"[yellow]{msg}[/yellow]")
+            last_scan_status["errors"].append(msg)
+            return
 
-    console.print(f"[green]Watchlist updated: {new_count} new, {len(watchlist)} total[/green]")
+        # 4. Update watchlist
+        watchlist = Watchlist()
+        new_count = 0
+        for domain in ranked:
+            if watchlist.add(domain):
+                new_count += 1
 
-    # 5. Display top results
-    top = watchlist.get_top(25)
-    print_table(top, title="Top 25 Domains by Score")
+        last_scan_status["domains_tracked"] = len(watchlist)
+        console.print(f"[green]Watchlist updated: {new_count} new, {len(watchlist)} total[/green]")
 
-    # 6. Flag domains expiring soon for backorder consideration
-    expiring = [d for d in top if d.get("status") == "pending_delete"]
-    if expiring:
-        console.print(f"\n[bold red]⚠ {len(expiring)} high-value domains pending deletion — consider backorder![/bold red]")
-        for d in expiring[:5]:
-            console.print(f"  → {d['name']} (score: {d['score']}, expires: {d.get('expiration_date', 'unknown')})")
+        # 5. Display top results
+        top = watchlist.get_top(25)
+        print_table(top, title="Top 25 Domains by Score")
+
+        # 6. Flag domains expiring soon
+        expiring = [d for d in top if d.get("status") == "pending_delete"]
+        if expiring:
+            console.print(f"\n[bold red]{len(expiring)} high-value domains pending deletion![/bold red]")
+            for d in expiring[:5]:
+                console.print(f"  -> {d['name']} (score: {d['score']})")
+
+    except Exception as e:
+        msg = f"Scan error: {e}"
+        console.print(f"[red]{msg}[/red]")
+        last_scan_status["errors"].append(msg)
 
 
 def run_once():
@@ -119,15 +137,24 @@ def run_once():
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        watchlist = Watchlist()
-        body = f"Domain Watchlist Bot running. {len(watchlist)} domains tracked."
+        import json as _json
+        status = last_scan_status.copy()
+        try:
+            watchlist = Watchlist()
+            status["domains_tracked"] = len(watchlist)
+            status["top_domains"] = [
+                {"name": d.get("name"), "score": d.get("score", 0)}
+                for d in watchlist.get_top(10)
+            ]
+        except Exception:
+            pass
         self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(body.encode())
+        self.wfile.write(_json.dumps(status, indent=2).encode())
 
     def log_message(self, format, *args):
-        pass  # Suppress request logs
+        pass
 
 
 def start_health_server():
