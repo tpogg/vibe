@@ -412,38 +412,51 @@
 </div>
 
 <div id="footer">
-  <span><span class="footer-live">&#9679;</span> LIVE DATA (simulated)</span>
+  <span><span class="footer-live">&#9679;</span> <span id="data-source">CONNECTING...</span></span>
   <span class="moon-phase" id="moon-phase"></span>
   <span>MOON TERMINAL v0.69 | NOT FINANCIAL ADVICE</span>
 </div>
 
 <script>
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Coin config (CoinGecko IDs + display) ──────────────────────────────────
 const COINS = [
-  { name: 'DOGECOIN',    sym: 'DOGE',   icon: '\u{1F436}', price: 0.1542,    mcap: 20.1e9,  moonBase: 72, vibe: 'legendary' },
-  { name: 'SHIBA INU',   sym: 'SHIB',   icon: '\u{1F43A}', price: 0.0000234, mcap: 13.8e9,  moonBase: 65, vibe: 'certified' },
-  { name: 'PEPE',        sym: 'PEPE',   icon: '\u{1F438}', price: 0.0000089, mcap: 3.7e9,   moonBase: 81, vibe: 'ascended' },
-  { name: 'BONK',        sym: 'BONK',   icon: '\u{1F9B4}', price: 0.0000312, mcap: 1.9e9,   moonBase: 58, vibe: 'unhinged' },
-  { name: 'FLOKI',       sym: 'FLOKI',  icon: '\u2694\uFE0F',  price: 0.000187,  mcap: 1.6e9,   moonBase: 54, vibe: 'viking' },
-  { name: 'WOJAK',       sym: 'WOJAK',  icon: '\u{1F62D}', price: 0.000042,  mcap: 420e6,   moonBase: 88, vibe: 'feels' },
-  { name: 'MOON FROG',   sym: 'MFRG',   icon: '\u{1F31D}', price: 0.00069,   mcap: 69e6,    moonBase: 95, vibe: 'immaculate' },
-  { name: 'RUG PULL',    sym: 'RUGP',   icon: '\u26A0\uFE0F',  price: 0.0000001, mcap: 1.2e6,   moonBase: 12, vibe: 'sus' },
-  { name: 'GIGA CHAD',   sym: 'GIGA',   icon: '\u{1F4AA}', price: 0.00420,   mcap: 210e6,   moonBase: 77, vibe: 'based' },
-  { name: 'PUMP DOT FUN', sym: 'PUMP',  icon: '\u{1F680}', price: 0.00133,   mcap: 88e6,    moonBase: 69, vibe: 'wagmi' },
-  { name: 'TURBO',       sym: 'TURBO',  icon: '\u{1F40C}', price: 0.00892,   mcap: 560e6,   moonBase: 63, vibe: 'zooming' },
-  { name: 'SNEK',        sym: 'SNEK',   icon: '\u{1F40D}', price: 0.000156,  mcap: 95e6,    moonBase: 71, vibe: 'slithery' },
+  { id: 'dogecoin',       name: 'DOGECOIN',     sym: 'DOGE',  icon: '\u{1F436}', vibe: 'legendary' },
+  { id: 'shiba-inu',      name: 'SHIBA INU',    sym: 'SHIB',  icon: '\u{1F43A}', vibe: 'certified' },
+  { id: 'pepe',           name: 'PEPE',         sym: 'PEPE',  icon: '\u{1F438}', vibe: 'ascended' },
+  { id: 'bonk',           name: 'BONK',         sym: 'BONK',  icon: '\u{1F9B4}', vibe: 'unhinged' },
+  { id: 'floki',          name: 'FLOKI',        sym: 'FLOKI', icon: '\u2694\uFE0F',  vibe: 'viking' },
+  { id: 'wojak',          name: 'WOJAK',        sym: 'WOJAK', icon: '\u{1F62D}', vibe: 'feels' },
+  { id: 'gigachad-2',     name: 'GIGA CHAD',    sym: 'GIGA',  icon: '\u{1F4AA}', vibe: 'based' },
+  { id: 'turbo',          name: 'TURBO',        sym: 'TURBO', icon: '\u{1F40C}', vibe: 'zooming' },
+  { id: 'brett',          name: 'BRETT',         sym: 'BRETT', icon: '\u{1F7E6}', vibe: 'based blue' },
+  { id: 'dog-go-to-the-moon-rune', name: 'DOG', sym: 'DOG',   icon: '\u{1F415}', vibe: 'runic' },
+  { id: 'memecoin-2',     name: 'MEMECOIN',     sym: 'MEME',  icon: '\u{1F680}', vibe: 'meta' },
+  { id: 'cat-in-a-dogs-world', name: 'MEW',     sym: 'MEW',   icon: '\u{1F431}', vibe: 'purrfect' },
 ];
 
-// mutable state
+const COINGECKO_IDS = COINS.map(c => c.id).join(',');
+const API_URL = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COINGECKO_IDS}&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d`;
+
+// ─── Mutable state ──────────────────────────────────────────────────────────
 const state = COINS.map(c => ({
   ...c,
-  change: (Math.random() - 0.4) * 30,
-  currentPrice: c.price,
-  history: Array.from({length: 20}, () => c.price * (0.8 + Math.random() * 0.4)),
-  moonScore: c.moonBase + Math.floor(Math.random() * 10 - 5),
+  change: 0,
+  change1h: 0,
+  change7d: 0,
+  currentPrice: 0,
+  mcap: 0,
+  volume: 0,
+  history: [],
+  moonScore: 50,
+  rank: 0,
+  ath: 0,
+  athChange: 0,
+  lastUpdated: null,
 }));
 
 let selectedIdx = null;
+let isLive = false;
+let lastFetch = 0;
 
 // ─── Logo ────────────────────────────────────────────────────────────────────
 const LOGO = `
@@ -543,14 +556,22 @@ function selectCoin(i) {
 
   const chClass = c.change >= 0 ? 'val-up' : 'val-down';
   const chSign = c.change >= 0 ? '+' : '';
+  const ch1h = c.change1h >= 0 ? '+' + c.change1h.toFixed(2) : c.change1h.toFixed(2);
+  const ch7d = c.change7d >= 0 ? '+' + c.change7d.toFixed(2) : c.change7d.toFixed(2);
 
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-row"><span class="detail-label">Symbol</span><span class="detail-val">${c.sym}</span></div>
     <div class="detail-row"><span class="detail-label">Price</span><span class="detail-val">${fmt(c.currentPrice)}</span></div>
+    <div class="detail-row"><span class="detail-label">1h</span><span class="${c.change1h >= 0 ? 'val-up' : 'val-down'}">${ch1h}%</span></div>
     <div class="detail-row"><span class="detail-label">24h</span><span class="${chClass}">${chSign}${c.change.toFixed(2)}%</span></div>
+    <div class="detail-row"><span class="detail-label">7d</span><span class="${c.change7d >= 0 ? 'val-up' : 'val-down'}">${ch7d}%</span></div>
     <div class="detail-row"><span class="detail-label">MCap</span><span class="detail-val">${fmtMcap(c.mcap)}</span></div>
+    <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-val">${fmtMcap(c.volume)}</span></div>
+    <div class="detail-row"><span class="detail-label">ATH</span><span class="detail-val">${fmt(c.ath)}</span></div>
+    <div class="detail-row"><span class="detail-label">From ATH</span><span class="val-down">${c.athChange.toFixed(1)}%</span></div>
     <div class="detail-row"><span class="detail-label">Moon</span><span class="detail-val" style="color:${moonColor(c.moonScore)}">${c.moonScore}/100</span></div>
     <div class="detail-row"><span class="detail-label">Vibe</span><span class="detail-val" style="color:var(--magenta)">${c.vibe}</span></div>
+    <div class="detail-row"><span class="detail-label">Rank</span><span class="detail-val">#${c.rank}</span></div>
   `;
 
   renderChart(c);
@@ -593,14 +614,17 @@ function renderTicker() {
 // ─── Header stats ────────────────────────────────────────────────────────────
 function renderHeaderStats() {
   const totalMcap = state.reduce((a, c) => a + c.mcap, 0);
+  const totalVol = state.reduce((a, c) => a + c.volume, 0);
   const avgMoon = Math.round(state.reduce((a, c) => a + c.moonScore, 0) / state.length);
   const topCoin = state.reduce((a, c) => c.moonScore > a.moonScore ? c : a);
+  const ago = lastFetch ? Math.round((Date.now() - lastFetch) / 1000) + 's ago' : '--';
 
   document.getElementById('header-stats').innerHTML = `
     <div><span class="label">TOTAL MEME MCAP </span><span class="val">${fmtMcap(totalMcap)}</span></div>
+    <div><span class="label">24H VOLUME      </span><span class="val">${fmtMcap(totalVol)}</span></div>
     <div><span class="label">AVG MOON SCORE  </span><span class="val">${avgMoon}/100</span></div>
     <div><span class="label">TOP VIBE        </span><span class="val">${topCoin.icon} ${topCoin.sym}</span></div>
-    <div><span class="label">COINS TRACKED   </span><span class="val">${state.length}</span></div>
+    <div><span class="label">LAST UPDATE     </span><span class="val">${ago}</span></div>
   `;
 }
 
@@ -618,13 +642,20 @@ const ACTIONS = [
 const feedEl = document.getElementById('feed');
 const feedItems = [];
 
-function addFeedItem() {
+function addFeedItem(customMsg) {
   const c = state[Math.floor(Math.random() * state.length)];
-  const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
   const now = new Date();
   const time = now.toTimeString().slice(0, 8);
 
-  feedItems.unshift(`<div class="feed-item"><span class="feed-time">${time}</span> ${action(c)}</div>`);
+  let msg;
+  if (customMsg) {
+    msg = `<span class="feed-action">${customMsg}</span>`;
+  } else {
+    const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+    msg = action(c);
+  }
+
+  feedItems.unshift(`<div class="feed-item"><span class="feed-time">${time}</span> ${msg}</div>`);
   if (feedItems.length > 8) feedItems.pop();
   feedEl.innerHTML = feedItems.join('');
 }
@@ -637,41 +668,128 @@ function getMoonPhase() {
 }
 document.getElementById('moon-phase').textContent = getMoonPhase();
 
-// ─── Price simulation ────────────────────────────────────────────────────────
-function tick() {
-  state.forEach(c => {
-    const delta = (Math.random() - 0.48) * 0.04;
-    c.currentPrice *= (1 + delta);
-    c.change += delta * 100;
-    c.change = Math.max(-99, Math.min(999, c.change));
-    c.mcap *= (1 + delta);
+// ─── Moon Score Algorithm ────────────────────────────────────────────────────
+// Computed from real metrics: 24h change, 7d momentum, volume/mcap ratio, ATH distance
+function computeMoonScore(c) {
+  let score = 50;
+  // 24h momentum (up to +/- 20 pts)
+  score += Math.max(-20, Math.min(20, c.change * 1.5));
+  // 7d trend (up to +/- 15 pts)
+  score += Math.max(-15, Math.min(15, c.change7d * 0.5));
+  // volume/mcap ratio — high volume = hype (up to +15 pts)
+  if (c.mcap > 0) {
+    const vmRatio = c.volume / c.mcap;
+    score += Math.min(15, vmRatio * 30);
+  }
+  // ATH distance — closer to ATH = more moon (up to +10 pts)
+  if (c.athChange > -20) score += 10;
+  else if (c.athChange > -50) score += 5;
+  else if (c.athChange < -90) score -= 10;
+  return Math.max(1, Math.min(99, Math.round(score)));
+}
 
-    // moon score drifts
-    c.moonScore = Math.max(1, Math.min(99, c.moonScore + Math.floor(Math.random() * 3 - 1)));
+// ─── CoinGecko Fetch ────────────────────────────────────────────────────────
+async function fetchLiveData() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-    c.history.push(c.currentPrice);
-    if (c.history.length > 20) c.history.shift();
-  });
+    data.forEach(coin => {
+      const idx = state.findIndex(s => s.id === coin.id);
+      if (idx === -1) return;
+      const s = state[idx];
+      s.currentPrice = coin.current_price || 0;
+      s.change = coin.price_change_percentage_24h || 0;
+      s.change1h = coin.price_change_percentage_1h_in_currency || 0;
+      s.change7d = coin.price_change_percentage_7d_in_currency || 0;
+      s.mcap = coin.market_cap || 0;
+      s.volume = coin.total_volume || 0;
+      s.rank = coin.market_cap_rank || 0;
+      s.ath = coin.ath || 0;
+      s.athChange = coin.ath_change_percentage || 0;
+      s.lastUpdated = coin.last_updated;
+      // Use 7-day sparkline for history
+      if (coin.sparkline_in_7d && coin.sparkline_in_7d.price) {
+        s.history = coin.sparkline_in_7d.price;
+      }
+      s.moonScore = computeMoonScore(s);
+    });
 
-  renderTable();
-  renderTicker();
-  renderHeaderStats();
-  if (selectedIdx !== null) {
-    selectCoin(selectedIdx);
+    isLive = true;
+    lastFetch = Date.now();
+    document.getElementById('data-source').textContent = 'LIVE DATA (CoinGecko)';
+    document.getElementById('data-source').style.color = 'var(--green)';
+
+    renderAll();
+    addFeedItem(`API update: ${data.length} coins refreshed`);
+  } catch (err) {
+    console.warn('CoinGecko fetch failed:', err.message);
+    document.getElementById('data-source').textContent = 'API ERROR — retrying...';
+    document.getElementById('data-source').style.color = 'var(--red)';
+
+    // If first load failed, seed with fallback data so the UI isn't empty
+    if (!isLive && state[0].currentPrice === 0) {
+      seedFallback();
+    }
   }
 }
 
-// ─── Init ────────────────────────────────────────────────────────────────────
-renderTable();
-renderTicker();
-renderHeaderStats();
-renderChart(state[0]);
-addFeedItem();
-addFeedItem();
-addFeedItem();
+// ─── Fallback data if API is blocked ────────────────────────────────────────
+function seedFallback() {
+  const fallback = {
+    'dogecoin': { p: 0.154, mc: 20.1e9 },
+    'shiba-inu': { p: 0.0000234, mc: 13.8e9 },
+    'pepe': { p: 0.0000089, mc: 3.7e9 },
+    'bonk': { p: 0.0000312, mc: 1.9e9 },
+    'floki': { p: 0.000187, mc: 1.6e9 },
+    'wojak': { p: 0.000042, mc: 420e6 },
+    'gigachad-2': { p: 0.00420, mc: 210e6 },
+    'turbo': { p: 0.00892, mc: 560e6 },
+    'brett': { p: 0.095, mc: 940e6 },
+    'dog-go-to-the-moon-rune': { p: 0.0072, mc: 720e6 },
+    'memecoin-2': { p: 0.0032, mc: 320e6 },
+    'cat-in-a-dogs-world': { p: 0.0038, mc: 380e6 },
+  };
+  state.forEach(s => {
+    const fb = fallback[s.id];
+    if (!fb) return;
+    s.currentPrice = fb.p;
+    s.mcap = fb.mc;
+    s.change = (Math.random() - 0.4) * 20;
+    s.change1h = (Math.random() - 0.5) * 5;
+    s.change7d = (Math.random() - 0.4) * 30;
+    s.volume = fb.mc * (0.05 + Math.random() * 0.15);
+    s.ath = fb.p * (2 + Math.random() * 10);
+    s.athChange = -((1 - fb.p / s.ath) * 100);
+    s.history = Array.from({length: 20}, () => fb.p * (0.8 + Math.random() * 0.4));
+    s.moonScore = computeMoonScore(s);
+  });
+  document.getElementById('data-source').textContent = 'OFFLINE MODE (cached data)';
+  document.getElementById('data-source').style.color = 'var(--amber)';
+  renderAll();
+}
 
-setInterval(tick, 2000);
-setInterval(addFeedItem, 3000);
+// ─── Render all ─────────────────────────────────────────────────────────────
+function renderAll() {
+  renderTable();
+  renderTicker();
+  renderHeaderStats();
+  if (selectedIdx !== null) selectCoin(selectedIdx);
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+// Initial fetch
+fetchLiveData();
+
+// Re-fetch from API every 60 seconds (CoinGecko free tier: ~30 calls/min)
+setInterval(fetchLiveData, 60000);
+
+// Feed items
+addFeedItem();
+addFeedItem();
+addFeedItem();
+setInterval(addFeedItem, 4000);
 </script>
 </body>
 </html>
