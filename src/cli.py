@@ -146,6 +146,17 @@ def cmd_organize(args):
     print(f"\nOrganized files at: {output_dir}")
 
 
+def cmd_bot(args):
+    """Start the Discord bot (slash command mode)."""
+    from .bot import main as bot_main
+    sys.argv = ["vibe-bot"]
+    if args.no_upload:
+        sys.argv.append("--no-upload")
+    if args.verbose:
+        sys.argv.append("--verbose")
+    bot_main()
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="vibe",
@@ -154,17 +165,22 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="Debug logging")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    # vibe bot [--no-upload]
+    sub = subparsers.add_parser("bot", help="Run Discord bot (use /scrape in servers)")
+    sub.add_argument("--no-upload", action="store_true", help="Disable cloud upload")
+    sub.set_defaults(func=cmd_bot)
+
     # vibe servers
-    sub = subparsers.add_parser("servers", help="List all servers you're in")
+    sub = subparsers.add_parser("servers", help="List all servers you're in (uses DCE)")
     sub.set_defaults(func=cmd_servers)
 
     # vibe channels <server-id>
-    sub = subparsers.add_parser("channels", help="List channels in a server")
+    sub = subparsers.add_parser("channels", help="List channels in a server (uses DCE)")
     sub.add_argument("server", help="Server ID")
     sub.set_defaults(func=cmd_channels)
 
     # vibe scrape <server-id> [--channels ...] [--no-upload]
-    sub = subparsers.add_parser("scrape", help="Scrape a server: export, categorize, upload")
+    sub = subparsers.add_parser("scrape", help="Scrape a server via DCE: export, categorize, upload")
     sub.add_argument("server", help="Server ID (get from 'vibe servers')")
     sub.add_argument(
         "--channels", nargs="+", metavar="ID",

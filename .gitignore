@@ -3,10 +3,10 @@
 credentials.json
 *.json.bak
 
-# Export and organized output
+# Download/export/output directories
+downloads/
 exports/
 organized/
-downloads/
 
 # Python
 __pycache__/

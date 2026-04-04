@@ -5,25 +5,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Discord user token — used by DiscordChatExporter
-# Get yours: Discord -> Dev Tools (Ctrl+Shift+I) -> Network tab -> copy Authorization header
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "")
+# === Discord Bot (for `vibe bot` mode) ===
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
+OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 
-# Path to DiscordChatExporter CLI executable
+# === Discord User Token (for `vibe scrape` CLI mode via DiscordChatExporter) ===
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "")
 DCE_PATH = os.getenv("DCE_PATH", "DiscordChatExporter.Cli")
 
-# Local directory for exports and organized output
-EXPORT_DIR = Path(os.getenv("EXPORT_DIR", "./exports"))
-ORGANIZED_DIR = Path(os.getenv("ORGANIZED_DIR", "./organized"))
+# === Directories ===
+DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "./downloads"))  # bot downloads
+EXPORT_DIR = Path(os.getenv("EXPORT_DIR", "./exports"))        # DCE exports
+ORGANIZED_DIR = Path(os.getenv("ORGANIZED_DIR", "./organized")) # categorized output
 
-# Google Drive
+# === Google Drive ===
 GOOGLE_CREDENTIALS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json")
 GOOGLE_DRIVE_ROOT_FOLDER_ID = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "")
 
-# File size limit in MB (0 = unlimited)
-MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "0"))
+# === Scraper Settings ===
+MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", "5"))
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "0"))  # 0 = unlimited
 
-# Category definitions: category name -> list of extensions
+# === Category Definitions ===
 FILE_CATEGORIES = {
     "images": [
         ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg", ".ico",
