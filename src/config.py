@@ -8,6 +8,9 @@ load_dotenv()
 # Discord
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
 
+# Your Discord user ID — only this user can run scrape commands
+OWNER_ID = int(os.getenv("OWNER_ID", "0"))
+
 # Local staging directory for downloads before cloud upload
 DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "./downloads"))
 
@@ -17,7 +20,6 @@ GOOGLE_DRIVE_ROOT_FOLDER_ID = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "")
 
 # Scraper settings
 MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", "5"))
-SCRAPE_ON_JOIN = os.getenv("SCRAPE_ON_JOIN", "true").lower() == "true"
 SCRAPE_HISTORY_LIMIT = int(os.getenv("SCRAPE_HISTORY_LIMIT", "0"))  # 0 = unlimited
 
 # File size limit in MB (0 = unlimited)

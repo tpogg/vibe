@@ -35,7 +35,7 @@ class MediaScraper:
         if self._session and not self._session.closed:
             await self._session.close()
 
-    async def scrape_guild(self, guild: discord.Guild) -> Path:
+    async def scrape_guild(self, guild: discord.Guild, *, limit: int = 0) -> Path:
         """Scrape all accessible text channels in a guild.
 
         Returns the path to the guild's download directory.
@@ -45,13 +45,15 @@ class MediaScraper:
 
         self.stats = {"downloaded": 0, "skipped": 0, "failed": 0}
 
+        msg_limit = limit if limit > 0 else (SCRAPE_HISTORY_LIMIT if SCRAPE_HISTORY_LIMIT > 0 else None)
+
         tasks = []
         for channel in guild.text_channels:
             perms = channel.permissions_for(guild.me)
             if not perms.read_messages or not perms.read_message_history:
                 logger.info("Skipping #%s — missing permissions", channel.name)
                 continue
-            tasks.append(self._scrape_channel(channel, guild_dir))
+            tasks.append(self._scrape_channel(channel, guild_dir, msg_limit))
 
         await asyncio.gather(*tasks)
 
@@ -64,20 +66,42 @@ class MediaScraper:
         )
         return guild_dir
 
+    async def scrape_channel(
+        self, guild: discord.Guild, channel: discord.TextChannel, *, limit: int = 0
+    ) -> Path:
+        """Scrape a single channel.
+
+        Returns the path to the guild's download directory.
+        """
+        guild_dir = DOWNLOAD_DIR / _sanitize(guild.name)
+        guild_dir.mkdir(parents=True, exist_ok=True)
+
+        self.stats = {"downloaded": 0, "skipped": 0, "failed": 0}
+
+        msg_limit = limit if limit > 0 else (SCRAPE_HISTORY_LIMIT if SCRAPE_HISTORY_LIMIT > 0 else None)
+        await self._scrape_channel(channel, guild_dir, msg_limit)
+
+        logger.info(
+            "Channel #%s scrape complete — downloaded: %d, skipped: %d, failed: %d",
+            channel.name,
+            self.stats["downloaded"],
+            self.stats["skipped"],
+            self.stats["failed"],
+        )
+        return guild_dir
+
     async def _scrape_channel(
-        self, channel: discord.TextChannel, guild_dir: Path
+        self, channel: discord.TextChannel, guild_dir: Path, msg_limit: int | None
     ):
         """Iterate through a channel's history and download attachments + embeds."""
         channel_dir = guild_dir / _sanitize(channel.name)
         channel_dir.mkdir(parents=True, exist_ok=True)
 
-        limit = SCRAPE_HISTORY_LIMIT if SCRAPE_HISTORY_LIMIT > 0 else None
         count = 0
-
         logger.info("Scraping #%s ...", channel.name)
 
         try:
-            async for message in channel.history(limit=limit, oldest_first=True):
+            async for message in channel.history(limit=msg_limit, oldest_first=True):
                 # Download file attachments
                 for attachment in message.attachments:
                     await self._download_file(
