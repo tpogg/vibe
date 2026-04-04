@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: vibe
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DOWNLOAD_DIR
+        value: /app/downloads
+      - key: EXPORT_DIR
+        value: /app/exports
+      - key: ORGANIZED_DIR
+        value: /app/organized
