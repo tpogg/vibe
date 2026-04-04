@@ -1,0 +1,23 @@
+# Environment and secrets
+.env
+credentials.json
+*.json.bak
+
+# Downloads staging directory
+downloads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
