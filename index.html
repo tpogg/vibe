@@ -7,676 +7,87 @@
   <meta name="description" content="The ultimate AI-powered League of Legends training platform. Practice techniques, analyze replays, climb ranked.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow: hidden; height: 100%; background: #050508; }
+
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: #050508;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    #boot-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .boot-content { text-align: center; }
+    #boot-logo {
+      color: #00ff41;
+      font-size: 10px;
+      line-height: 1.2;
+      text-shadow: 0 0 20px rgba(0,255,65,0.3);
+      margin-bottom: 30px;
+      white-space: pre;
+    }
+    .boot-progress {
+      width: 400px;
+      max-width: 90vw;
+      height: 4px;
+      background: rgba(0,255,65,0.06);
+      border: 1px solid rgba(0,255,65,0.12);
+      margin: 0 auto 16px;
+      overflow: hidden;
+    }
+    #boot-bar {
+      height: 100%;
+      width: 0%;
+      background: #00ff41;
+      box-shadow: 0 0 20px rgba(0,255,65,0.3);
+      transition: width 0.2s linear;
+    }
+    #boot-text {
+      color: #00aa2a;
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    #main-canvas {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+  </style>
 </head>
 <body>
-  <!-- CRT Overlay Effects -->
-  <div id="scanlines"></div>
-  <div id="crt-glow"></div>
-  <canvas id="particles-canvas"></canvas>
-
-  <!-- Boot Sequence -->
+  <!-- Boot Screen -->
   <div id="boot-screen">
     <div class="boot-content">
-      <pre class="boot-logo" id="boot-logo"></pre>
+      <pre id="boot-logo"></pre>
       <div class="boot-progress">
-        <div class="boot-bar" id="boot-bar"></div>
+        <div id="boot-bar"></div>
       </div>
-      <div class="boot-text" id="boot-text">INITIALIZING 1V9 NEURAL ENGINE...</div>
+      <div id="boot-text">INITIALIZING 1V9 NEURAL ENGINE...</div>
     </div>
   </div>
 
-  <!-- Navigation -->
-  <nav id="main-nav">
-    <div class="nav-inner">
-      <a href="#home" class="nav-logo">
-        <span class="logo-bracket">[</span>
-        <span class="logo-text">1V9</span>
-        <span class="logo-dot">.</span>
-        <span class="logo-ai">AI</span>
-        <span class="logo-bracket">]</span>
-      </a>
-      <div class="nav-links" id="nav-links">
-        <a href="#home" class="nav-link active" data-page="home">HOME</a>
-        <a href="#train" class="nav-link" data-page="train">TRAINING</a>
-        <a href="#champions" class="nav-link" data-page="champions">CHAMPIONS</a>
-        <a href="#tierlist" class="nav-link" data-page="tierlist">TIER LIST</a>
-        <a href="#coaching" class="nav-link" data-page="coaching">AI COACH</a>
-        <a href="#tft" class="nav-link" data-page="tft">TFT</a>
-        <a href="#coin" class="nav-link" data-page="coin">$1V9</a>
-        <a href="#news" class="nav-link" data-page="news">NEWS</a>
-        <a href="#community" class="nav-link" data-page="community">COMMUNITY</a>
-      </div>
-      <div class="nav-right">
-        <div class="credits-display" id="credits-display">
-          <span class="credits-icon">◆</span>
-          <span class="credits-amount" id="credits-amount">100</span>
-          <span class="credits-label">CREDITS</span>
-        </div>
-        <button class="btn-cyber" id="btn-signin">SIGN IN</button>
-        <button class="nav-burger" id="nav-burger">☰</button>
-      </div>
-    </div>
-  </nav>
+  <!-- The entire UI renders here -->
+  <canvas id="main-canvas"></canvas>
 
-  <!-- Page Container -->
-  <main id="app">
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- HOME PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-home" class="page active">
-      <!-- Hero -->
-      <div class="hero">
-        <div class="hero-content">
-          <div class="hero-glitch" data-text="1V9.AI">1V9.AI</div>
-          <p class="hero-tagline">NEURAL-POWERED LEAGUE TRAINING</p>
-          <p class="hero-sub">Master every technique. Climb every rank. Carry every game.</p>
-          <div class="hero-cta">
-            <a href="#train" class="btn-primary btn-glow" data-page="train">START TRAINING — FREE</a>
-            <a href="#coaching" class="btn-secondary" data-page="coaching">AI COACHING</a>
-          </div>
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <span class="stat-num" data-count="847392">0</span>
-              <span class="stat-label">TECHNIQUES PRACTICED</span>
-            </div>
-            <div class="hero-stat">
-              <span class="stat-num" data-count="12847">0</span>
-              <span class="stat-label">PLAYERS CLIMBING</span>
-            </div>
-            <div class="hero-stat">
-              <span class="stat-num" data-count="94">0</span>
-              <span class="stat-label">% WIN RATE BOOST</span>
-            </div>
-          </div>
-        </div>
-        <div class="hero-terminal">
-          <div class="terminal-header">
-            <span class="terminal-dot red"></span>
-            <span class="terminal-dot yellow"></span>
-            <span class="terminal-dot green"></span>
-            <span class="terminal-title">1v9@neural:~</span>
-          </div>
-          <div class="terminal-body" id="hero-terminal-body">
-            <div class="terminal-line dim">$ 1v9 --analyze summoner</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Feature Cards -->
-      <div class="section" id="features">
-        <h2 class="section-title glitch-text">WEAPON SYSTEMS</h2>
-        <p class="section-sub">Everything you need to go from hardstuck to challenger</p>
-        <div class="feature-grid">
-          <div class="feature-card" data-page="train">
-            <div class="feature-icon">⚔️</div>
-            <h3>TRAINING ARENA</h3>
-            <p>Interactive click-based practice. Learn last-hitting, combos, wave management, and 30+ techniques through hands-on drills.</p>
-            <span class="feature-tag free">FREE TIER</span>
-          </div>
-          <div class="feature-card" data-page="coaching">
-            <div class="feature-icon">🧠</div>
-            <h3>AI COACH</h3>
-            <p>Neural network trained on 10M+ games. Get personalized advice, replay analysis, and real-time strategy suggestions.</p>
-            <span class="feature-tag pro">PRO</span>
-          </div>
-          <div class="feature-card" data-page="champions">
-            <div class="feature-icon">👑</div>
-            <h3>CHAMPION DATABASE</h3>
-            <p>Every champion. Every build. Every counter. Every matchup. Updated live with AI-analyzed win rates.</p>
-            <span class="feature-tag free">FREE</span>
-          </div>
-          <div class="feature-card" data-page="tierlist">
-            <div class="feature-icon">📊</div>
-            <h3>AI TIER LISTS</h3>
-            <p>Not your average tier list. Our neural engine analyzes patch data in real-time and predicts the meta before it forms.</p>
-            <span class="feature-tag free">FREE</span>
-          </div>
-          <div class="feature-card" data-page="tft">
-            <div class="feature-icon">🎲</div>
-            <h3>TFT LAB</h3>
-            <p>Teamfight Tactics comps, augment analysis, item optimization, and a live team builder powered by AI.</p>
-            <span class="feature-tag free">FREE</span>
-          </div>
-          <div class="feature-card" data-page="coin">
-            <div class="feature-icon">💎</div>
-            <h3>$1V9 TOKEN</h3>
-            <p>The meme coin for carries. Earn tokens through training, refer friends, and spend them on premium features.</p>
-            <span class="feature-tag token">$1V9</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- How It Works -->
-      <div class="section">
-        <h2 class="section-title glitch-text">HOW THE ARENA WORKS</h2>
-        <div class="steps-grid">
-          <div class="step-card">
-            <div class="step-num">01</div>
-            <h3>PICK A TECHNIQUE</h3>
-            <p>Browse 30+ techniques from beginner fundamentals to challenger-level mechanics. Start free.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">02</div>
-            <h3>ENTER THE ARENA</h3>
-            <p>A visual scene loads with champions, minions, and abilities. Read the objective prompt.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">03</div>
-            <h3>EXECUTE</h3>
-            <p>Click targets in the right sequence and timing. Animation cancels, last hits, combo chains — practice it all.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">04</div>
-            <h3>GET SCORED</h3>
-            <p>Perfect, Good, or Miss. See exactly what you did right or wrong. Track your improvement over time.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Referral Banner -->
-      <div class="section">
-        <div class="referral-banner">
-          <div class="referral-content">
-            <h2>REFER FRIENDS. EARN $1V9.</h2>
-            <p>Every friend who signs up earns you 50 credits + 100 $1V9 tokens. They get 50 bonus credits too.</p>
-            <div class="referral-link-box">
-              <input type="text" value="https://1v9.ai/ref/USER_7X92K" readonly id="referral-link">
-              <button class="btn-cyber" id="copy-referral">COPY</button>
-            </div>
-            <div class="referral-stats">
-              <span>REFERRED: <strong>0</strong></span>
-              <span>EARNED: <strong>0 $1V9</strong></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- TRAINING ARENA PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-train" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">TRAINING ARENA</h1>
-        <p class="page-sub">Master League of Legends techniques through interactive practice</p>
-        <div class="xp-bar-container">
-          <div class="xp-label">TRAINING LEVEL: <span id="train-level">1</span></div>
-          <div class="xp-bar">
-            <div class="xp-fill" id="xp-fill" style="width: 15%"></div>
-          </div>
-          <div class="xp-text"><span id="xp-current">150</span> / <span id="xp-max">1000</span> XP</div>
-        </div>
-      </div>
-
-      <!-- Difficulty Tabs -->
-      <div class="train-tabs">
-        <button class="train-tab active" data-tier="beginner">
-          <span class="tab-icon">🟢</span> BEGINNER
-          <span class="tab-badge free">FREE</span>
-        </button>
-        <button class="train-tab" data-tier="intermediate">
-          <span class="tab-icon">🟡</span> INTERMEDIATE
-          <span class="tab-badge credits">25 CR</span>
-        </button>
-        <button class="train-tab" data-tier="advanced">
-          <span class="tab-icon">🔴</span> ADVANCED
-          <span class="tab-badge sub">PRO</span>
-        </button>
-      </div>
-
-      <!-- Technique Grid -->
-      <div class="technique-grid" id="technique-grid">
-        <!-- Populated by JS -->
-      </div>
-
-      <!-- Training Arena (hidden until technique selected) -->
-      <div class="arena-overlay" id="arena-overlay">
-        <div class="arena-container">
-          <div class="arena-header">
-            <div class="arena-info">
-              <h2 id="arena-technique-name">Last Hitting Under Tower</h2>
-              <span class="arena-tier" id="arena-tier">BEGINNER</span>
-            </div>
-            <button class="arena-close" id="arena-close">✕ ESC</button>
-          </div>
-          <div class="arena-prompt" id="arena-prompt">
-            Click the minion when its health bar is in the red zone to last hit it.
-          </div>
-          <div class="arena-viewport">
-            <canvas id="arena-canvas" width="800" height="500"></canvas>
-          </div>
-          <div class="arena-hud">
-            <div class="arena-score">
-              <span class="hud-label">SCORE</span>
-              <span class="hud-value" id="arena-score">0</span>
-            </div>
-            <div class="arena-combo">
-              <span class="hud-label">COMBO</span>
-              <span class="hud-value" id="arena-combo">0x</span>
-            </div>
-            <div class="arena-accuracy">
-              <span class="hud-label">ACCURACY</span>
-              <span class="hud-value" id="arena-accuracy">0%</span>
-            </div>
-            <div class="arena-timer">
-              <span class="hud-label">TIME</span>
-              <span class="hud-value" id="arena-timer">0:30</span>
-            </div>
-          </div>
-          <div class="arena-result" id="arena-result" style="display:none">
-            <div class="result-grade" id="result-grade">S+</div>
-            <div class="result-stats">
-              <div>Score: <span id="result-score">0</span></div>
-              <div>Accuracy: <span id="result-accuracy">0%</span></div>
-              <div>Best Combo: <span id="result-combo">0x</span></div>
-              <div>XP Earned: <span id="result-xp">+0 XP</span></div>
-            </div>
-            <div class="result-tip" id="result-tip"></div>
-            <div class="result-actions">
-              <button class="btn-primary" id="retry-btn">RETRY</button>
-              <button class="btn-secondary" id="back-to-list-btn">BACK TO LIST</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Paywall Modal -->
-      <div class="paywall-modal" id="paywall-modal" style="display:none">
-        <div class="paywall-content">
-          <div class="paywall-close" id="paywall-close">✕</div>
-          <div class="paywall-icon">🔒</div>
-          <h2>UNLOCK THIS TECHNIQUE</h2>
-          <p id="paywall-text">This technique requires credits or a Pro subscription to access.</p>
-          <div class="paywall-options">
-            <div class="paywall-option">
-              <h3>USE CREDITS</h3>
-              <p class="paywall-price"><span id="paywall-cost">25</span> Credits</p>
-              <p>One-time unlock for this technique</p>
-              <button class="btn-primary" id="paywall-credits-btn">SPEND CREDITS</button>
-            </div>
-            <div class="paywall-option featured">
-              <div class="paywall-popular">BEST VALUE</div>
-              <h3>GO PRO</h3>
-              <p class="paywall-price">$9.99<span>/mo</span></p>
-              <p>Unlock ALL techniques + AI Coach + Replays</p>
-              <button class="btn-primary btn-glow" id="paywall-sub-btn">SUBSCRIBE</button>
-            </div>
-          </div>
-          <div class="paywall-earn">
-            <p>Need credits? <a href="#coin" data-page="coin">Earn $1V9 tokens</a> or <a href="#" id="paywall-referral">refer friends</a></p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- CHAMPIONS PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-champions" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">CHAMPION DATABASE</h1>
-        <p class="page-sub">Every champion. Every build. Every counter. AI-analyzed.</p>
-      </div>
-      <div class="champ-filters">
-        <input type="text" class="search-input" id="champ-search" placeholder="Search champions...">
-        <div class="role-filters" id="role-filters">
-          <button class="role-btn active" data-role="all">ALL</button>
-          <button class="role-btn" data-role="top">TOP</button>
-          <button class="role-btn" data-role="jungle">JNG</button>
-          <button class="role-btn" data-role="mid">MID</button>
-          <button class="role-btn" data-role="adc">ADC</button>
-          <button class="role-btn" data-role="support">SUP</button>
-        </div>
-      </div>
-      <div class="champ-grid" id="champ-grid">
-        <!-- Populated by JS -->
-      </div>
-      <!-- Champion Detail Modal -->
-      <div class="champ-modal" id="champ-modal" style="display:none">
-        <div class="champ-modal-content" id="champ-modal-content">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- TIER LIST PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-tierlist" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">AI TIER LIST</h1>
-        <p class="page-sub">Neural engine meta analysis — Patch 14.24</p>
-      </div>
-      <div class="tier-controls">
-        <div class="role-filters" id="tier-role-filters">
-          <button class="role-btn active" data-role="all">ALL</button>
-          <button class="role-btn" data-role="top">TOP</button>
-          <button class="role-btn" data-role="jungle">JNG</button>
-          <button class="role-btn" data-role="mid">MID</button>
-          <button class="role-btn" data-role="adc">ADC</button>
-          <button class="role-btn" data-role="support">SUP</button>
-        </div>
-        <div class="tier-rank-filter">
-          <select id="tier-rank-select" class="cyber-select">
-            <option value="all">ALL RANKS</option>
-            <option value="iron">IRON</option>
-            <option value="bronze">BRONZE</option>
-            <option value="silver">SILVER</option>
-            <option value="gold">GOLD</option>
-            <option value="platinum">PLATINUM</option>
-            <option value="emerald">EMERALD</option>
-            <option value="diamond">DIAMOND</option>
-            <option value="master">MASTER+</option>
-          </select>
-        </div>
-      </div>
-      <div class="tier-list" id="tier-list">
-        <!-- Populated by JS -->
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- AI COACHING PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-coaching" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">AI COACHING HUB</h1>
-        <p class="page-sub">Your personal neural network coach</p>
-      </div>
-      <div class="coaching-grid">
-        <!-- AI Chat Coach -->
-        <div class="coaching-panel chat-panel">
-          <div class="panel-header">
-            <h3>💬 AI STRATEGY CHAT</h3>
-            <span class="pro-badge">PRO</span>
-          </div>
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-msg bot">
-              <div class="chat-avatar">🧠</div>
-              <div class="chat-bubble">Welcome to 1V9 AI Coach. I'm trained on 10M+ games. Ask me anything about League strategy, matchups, builds, or macro play. What do you need help with?</div>
-            </div>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chat-input" class="search-input" placeholder="Ask your AI coach...">
-            <button class="btn-cyber" id="chat-send">SEND</button>
-          </div>
-        </div>
-
-        <!-- Replay Analysis -->
-        <div class="coaching-panel">
-          <div class="panel-header">
-            <h3>🎬 REPLAY ANALYSIS</h3>
-            <span class="pro-badge">PRO</span>
-          </div>
-          <div class="replay-upload">
-            <div class="upload-zone" id="upload-zone">
-              <div class="upload-icon">📁</div>
-              <p>DROP REPLAY FILE HERE</p>
-              <p class="upload-sub">or paste match ID / op.gg link</p>
-              <input type="text" class="search-input" placeholder="Paste match URL..." id="replay-url">
-              <button class="btn-primary" id="analyze-replay-btn" style="margin-top:12px">ANALYZE</button>
-            </div>
-          </div>
-          <div class="replay-results" id="replay-results" style="display:none">
-            <h4>ANALYSIS RESULTS</h4>
-            <div class="analysis-cards" id="analysis-cards"></div>
-          </div>
-        </div>
-
-        <!-- Performance Dashboard -->
-        <div class="coaching-panel full-width">
-          <div class="panel-header">
-            <h3>📈 PERFORMANCE INSIGHTS</h3>
-          </div>
-          <div class="perf-grid">
-            <div class="perf-card">
-              <div class="perf-label">CS/MIN AVG</div>
-              <div class="perf-value cyan">7.2</div>
-              <div class="perf-delta positive">+0.8 this week</div>
-            </div>
-            <div class="perf-card">
-              <div class="perf-label">VISION SCORE</div>
-              <div class="perf-value amber">42</div>
-              <div class="perf-delta positive">+12 this week</div>
-            </div>
-            <div class="perf-card">
-              <div class="perf-label">KDA RATIO</div>
-              <div class="perf-value green">3.4</div>
-              <div class="perf-delta positive">+0.3 this week</div>
-            </div>
-            <div class="perf-card">
-              <div class="perf-label">WIN RATE</div>
-              <div class="perf-value magenta">58%</div>
-              <div class="perf-delta positive">+4% this week</div>
-            </div>
-            <div class="perf-card">
-              <div class="perf-label">CARRY SCORE</div>
-              <div class="perf-value green">A+</div>
-              <div class="perf-delta positive">TOP 5%</div>
-            </div>
-            <div class="perf-card">
-              <div class="perf-label">DEATH MAP</div>
-              <div class="perf-value red">3.1</div>
-              <div class="perf-delta negative">-0.5 needed</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- TFT PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-tft" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">TFT LAB</h1>
-        <p class="page-sub">Teamfight Tactics AI-optimized compositions and strategy</p>
-      </div>
-      <div class="tft-tabs">
-        <button class="train-tab active" data-tft="comps">META COMPS</button>
-        <button class="train-tab" data-tft="items">ITEMS</button>
-        <button class="train-tab" data-tft="augments">AUGMENTS</button>
-        <button class="train-tab" data-tft="builder">TEAM BUILDER</button>
-      </div>
-      <div class="tft-content" id="tft-content">
-        <!-- Populated by JS -->
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- $1V9 MEME COIN PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-coin" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">$1V9 TOKEN</h1>
-        <p class="page-sub">The meme coin for carries. Earn. Trade. Dominate.</p>
-      </div>
-
-      <div class="coin-hero">
-        <div class="coin-price-card">
-          <div class="coin-symbol">$1V9</div>
-          <div class="coin-price" id="coin-price">$0.00847</div>
-          <div class="coin-delta positive" id="coin-delta">▲ 24.7% (24h)</div>
-          <div class="coin-ticker" id="coin-ticker"></div>
-        </div>
-        <div class="coin-stats-grid">
-          <div class="coin-stat">
-            <span class="coin-stat-label">MARKET CAP</span>
-            <span class="coin-stat-value">$8.47M</span>
-          </div>
-          <div class="coin-stat">
-            <span class="coin-stat-label">HOLDERS</span>
-            <span class="coin-stat-value">12,847</span>
-          </div>
-          <div class="coin-stat">
-            <span class="coin-stat-label">24H VOLUME</span>
-            <span class="coin-stat-value">$1.2M</span>
-          </div>
-          <div class="coin-stat">
-            <span class="coin-stat-label">TOTAL SUPPLY</span>
-            <span class="coin-stat-value">1,000,000,000</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2 class="section-title">TOKENOMICS</h2>
-        <div class="tokenomics-grid">
-          <div class="token-card">
-            <div class="token-pct">40%</div>
-            <h3>COMMUNITY REWARDS</h3>
-            <p>Earn $1V9 by training, completing techniques, and climbing ranks</p>
-          </div>
-          <div class="token-card">
-            <div class="token-pct">25%</div>
-            <h3>LIQUIDITY POOL</h3>
-            <p>Locked liquidity ensuring stable trading on DEX platforms</p>
-          </div>
-          <div class="token-card">
-            <div class="token-pct">20%</div>
-            <h3>DEVELOPMENT</h3>
-            <p>Funding ongoing AI model training and platform development</p>
-          </div>
-          <div class="token-card">
-            <div class="token-pct">10%</div>
-            <h3>REFERRAL POOL</h3>
-            <p>Rewards for bringing new players to the 1V9 ecosystem</p>
-          </div>
-          <div class="token-card">
-            <div class="token-pct">5%</div>
-            <h3>TEAM</h3>
-            <p>2-year vesting schedule. Fully transparent on-chain.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="coin-cta">
-          <h2>CONNECT WALLET</h2>
-          <p>Buy $1V9 on Uniswap or earn through training</p>
-          <div class="wallet-buttons">
-            <button class="btn-primary btn-glow" id="connect-wallet">🦊 CONNECT METAMASK</button>
-            <button class="btn-secondary">BUY ON UNISWAP</button>
-          </div>
-          <p class="coin-contract">Contract: <code>0x1V9...AI2026</code></p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- NEWS PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-news" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">NEWS FEED</h1>
-        <p class="page-sub">Patch notes, pro scene, meta shifts — powered by AI curation</p>
-      </div>
-      <div class="news-grid" id="news-grid">
-        <!-- Populated by JS -->
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════ -->
-    <!-- COMMUNITY PAGE -->
-    <!-- ═══════════════════════════════════════════════ -->
-    <section id="page-community" class="page">
-      <div class="page-header">
-        <h1 class="page-title glitch-text">COMMUNITY</h1>
-        <p class="page-sub">Clips, highlights, leaderboards — the 1V9 army</p>
-      </div>
-
-      <div class="community-tabs">
-        <button class="train-tab active" data-comm="leaderboard">LEADERBOARD</button>
-        <button class="train-tab" data-comm="clips">CLIPS</button>
-        <button class="train-tab" data-comm="discussions">DISCUSSIONS</button>
-      </div>
-
-      <div class="community-content" id="community-content">
-        <!-- Populated by JS -->
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Footer -->
-  <footer id="main-footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <span class="logo-bracket">[</span><span class="logo-text">1V9</span><span class="logo-dot">.</span><span class="logo-ai">AI</span><span class="logo-bracket">]</span>
-        <p>Neural-powered League training.</p>
-        <p class="footer-copy">© 2026 1V9.AI — All rights reserved.</p>
-      </div>
-      <div class="footer-links">
-        <div class="footer-col">
-          <h4>PLATFORM</h4>
-          <a href="#train">Training Arena</a>
-          <a href="#coaching">AI Coaching</a>
-          <a href="#champions">Champions</a>
-          <a href="#tierlist">Tier List</a>
-        </div>
-        <div class="footer-col">
-          <h4>ECOSYSTEM</h4>
-          <a href="#coin">$1V9 Token</a>
-          <a href="#community">Community</a>
-          <a href="#news">News</a>
-          <a href="#">Referral Program</a>
-        </div>
-        <div class="footer-col">
-          <h4>RESOURCES</h4>
-          <a href="#">API Docs</a>
-          <a href="#">Discord</a>
-          <a href="#">Twitter/X</a>
-          <a href="#">GitHub</a>
-        </div>
-      </div>
-    </div>
-    <div class="footer-bar">
-      <span>1V9.AI is not affiliated with Riot Games. League of Legends is a trademark of Riot Games, Inc.</span>
-    </div>
-  </footer>
-
-  <!-- Auth Modal -->
-  <div class="auth-modal" id="auth-modal" style="display:none">
-    <div class="auth-content">
-      <div class="auth-close" id="auth-close">✕</div>
-      <h2>ACCESS <span class="text-cyan">1V9.AI</span></h2>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-auth="login">SIGN IN</button>
-        <button class="auth-tab" data-auth="register">REGISTER</button>
-      </div>
-      <form class="auth-form" id="auth-form">
-        <div class="auth-field">
-          <label>SUMMONER NAME / EMAIL</label>
-          <input type="text" class="search-input" placeholder="Enter your summoner name..." required>
-        </div>
-        <div class="auth-field">
-          <label>PASSWORD</label>
-          <input type="password" class="search-input" placeholder="••••••••" required>
-        </div>
-        <div class="auth-field register-only" style="display:none">
-          <label>REGION</label>
-          <select class="cyber-select">
-            <option>NA</option><option>EUW</option><option>EUNE</option><option>KR</option><option>JP</option><option>BR</option><option>OCE</option><option>LAN</option><option>LAS</option><option>TR</option><option>RU</option><option>PH</option><option>SG</option><option>TH</option><option>TW</option><option>VN</option>
-          </select>
-        </div>
-        <button type="submit" class="btn-primary btn-glow" style="width:100%;margin-top:12px">SIGN IN</button>
-      </form>
-      <div class="auth-divider"><span>or continue with</span></div>
-      <div class="auth-social">
-        <button class="btn-secondary">RIOT ACCOUNT</button>
-        <button class="btn-secondary">DISCORD</button>
-        <button class="btn-secondary">GOOGLE</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Notifications -->
-  <div class="toast-container" id="toast-container"></div>
-
+  <!-- Data (loaded first, provides global constants) -->
   <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+
+  <!-- App bundle (built from TypeScript) -->
+  <script src="dist/bundle.js"></script>
 </body>
 </html>
