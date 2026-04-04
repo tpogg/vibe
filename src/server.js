@@ -39,6 +39,22 @@ cron.schedule(cronExpression, async () => {
   }
 });
 
+// ── Self-ping keepalive (prevents Render free tier spin-down) ────────────────
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
+if (RENDER_URL) {
+  cron.schedule('*/4 * * * *', () => {
+    const https = require('https');
+    const http = require('http');
+    const client = RENDER_URL.startsWith('https') ? https : http;
+    client.get(`${RENDER_URL}/api/scan/status`, (res) => {
+      console.log(`[KEEPALIVE] Pinged ${RENDER_URL} — ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.error('[KEEPALIVE] Ping failed:', err.message);
+    });
+  });
+  console.log('[KEEPALIVE] Self-ping enabled every 4 minutes');
+}
+
 // ── Start ────────────────────────────────────────────────────────────────────
 app.listen(config.PORT, () => {
   console.log(`
