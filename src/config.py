@@ -5,25 +5,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Discord
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
+# Discord user token — used by DiscordChatExporter
+# Get yours: Discord -> Dev Tools (Ctrl+Shift+I) -> Network tab -> copy Authorization header
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "")
 
-# Your Discord user ID — only this user can run scrape commands
-OWNER_ID = int(os.getenv("OWNER_ID", "0"))
+# Path to DiscordChatExporter CLI executable
+DCE_PATH = os.getenv("DCE_PATH", "DiscordChatExporter.Cli")
 
-# Local staging directory for downloads before cloud upload
-DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "./downloads"))
+# Local directory for exports and organized output
+EXPORT_DIR = Path(os.getenv("EXPORT_DIR", "./exports"))
+ORGANIZED_DIR = Path(os.getenv("ORGANIZED_DIR", "./organized"))
 
 # Google Drive
 GOOGLE_CREDENTIALS_FILE = os.getenv("GOOGLE_CREDENTIALS_FILE", "credentials.json")
 GOOGLE_DRIVE_ROOT_FOLDER_ID = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "")
 
-# Scraper settings
-MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", "5"))
-SCRAPE_HISTORY_LIMIT = int(os.getenv("SCRAPE_HISTORY_LIMIT", "0"))  # 0 = unlimited
-
 # File size limit in MB (0 = unlimited)
-MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "100"))
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "0"))
 
 # Category definitions: category name -> list of extensions
 FILE_CATEGORIES = {

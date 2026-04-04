@@ -1,100 +1,92 @@
-"""Categorizes and reorganizes downloaded files by type."""
+"""Categorizes and reorganizes exported media files by type."""
 
 import logging
 import shutil
 from pathlib import Path
 
-from .config import FILE_CATEGORIES
+from .config import FILE_CATEGORIES, MAX_FILE_SIZE_MB
 
 logger = logging.getLogger(__name__)
 
 
-def categorize_guild_files(guild_dir: Path) -> Path:
-    """Reorganize a flat channel-based download tree into category-based folders.
+def categorize_export(export_dir: Path, output_dir: Path) -> Path:
+    """Scan an export directory for media files and organize them by category.
 
-    Input structure:
-        guild_dir/
-            channel_a/
-                photo.png
-                video.mp4
-                readme.txt
-            channel_b/
-                song.mp3
+    DiscordChatExporter puts downloaded media in a 'media/' subdirectory.
+    This function finds ALL files (in media/ and anywhere else), categorizes
+    them by extension, and copies them into an organized tree.
 
-    Output structure (written to guild_dir/_organized/):
-        guild_dir/_organized/
+    Output structure:
+        output_dir/
             images/
-                channel_a/
-                    photo.png
+                photo.png
+                meme.jpg
             videos/
-                channel_a/
-                    video.mp4
+                clip.mp4
             audio/
-                channel_b/
-                    song.mp3
+                song.mp3
             documents/
-                channel_a/
-                    readme.txt
+                guide.pdf
             other/
-                ...
+                unknown.bin
 
-    Returns the path to the organized directory.
+    Returns the output directory path.
     """
-    organized_dir = guild_dir / "_organized"
-    organized_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Build a reverse lookup: extension -> category
-    ext_to_category = {}
+    # Build reverse lookup: extension -> category
+    ext_to_category: dict[str, str] = {}
     for category, extensions in FILE_CATEGORIES.items():
         for ext in extensions:
             ext_to_category[ext.lower()] = category
 
     stats: dict[str, int] = {}
+    size_limit = MAX_FILE_SIZE_MB * 1024 * 1024 if MAX_FILE_SIZE_MB > 0 else 0
 
-    for channel_dir in guild_dir.iterdir():
-        if not channel_dir.is_dir() or channel_dir.name.startswith("_"):
+    # Walk the entire export tree for media files
+    # Skip .html export files — we only want actual media/attachments
+    skip_extensions = {".html", ".css"}
+
+    for file_path in export_dir.rglob("*"):
+        if not file_path.is_file():
             continue
 
-        for file_path in channel_dir.iterdir():
-            if not file_path.is_file():
-                continue
+        ext = file_path.suffix.lower()
+        if ext in skip_extensions:
+            continue
 
-            ext = file_path.suffix.lower()
-            category = ext_to_category.get(ext, "other")
+        # Skip files over size limit
+        if size_limit > 0 and file_path.stat().st_size > size_limit:
+            logger.debug("Skipping %s — exceeds size limit", file_path.name)
+            continue
 
-            dest_dir = organized_dir / category / channel_dir.name
-            dest_dir.mkdir(parents=True, exist_ok=True)
+        category = ext_to_category.get(ext, "other")
+        dest_dir = output_dir / category
+        dest_dir.mkdir(exist_ok=True)
 
-            dest_path = dest_dir / file_path.name
-            if dest_path.exists():
-                dest_path = _deduplicate(dest_path)
+        dest_path = dest_dir / file_path.name
+        if dest_path.exists():
+            dest_path = _deduplicate(dest_path)
 
-            shutil.copy2(file_path, dest_path)
+        shutil.copy2(file_path, dest_path)
+        stats[category] = stats.get(category, 0) + 1
 
-            stats[category] = stats.get(category, 0) + 1
-
-    logger.info("Categorization complete:")
+    total = sum(stats.values())
+    logger.info("Categorized %d files:", total)
     for category, count in sorted(stats.items()):
-        logger.info("  %s: %d files", category, count)
+        logger.info("  %s: %d", category, count)
 
-    return organized_dir
+    return output_dir
 
 
-def get_category_summary(organized_dir: Path) -> dict[str, list[str]]:
-    """Return a summary of categorized files: {category: [filenames]}."""
-    summary: dict[str, list[str]] = {}
+def get_summary(organized_dir: Path) -> dict[str, int]:
+    """Return a count of files per category."""
+    summary: dict[str, int] = {}
     for category_dir in sorted(organized_dir.iterdir()):
-        if not category_dir.is_dir():
-            continue
-        files = []
-        for channel_dir in sorted(category_dir.iterdir()):
-            if not channel_dir.is_dir():
-                continue
-            for f in sorted(channel_dir.iterdir()):
-                if f.is_file():
-                    files.append(f"{channel_dir.name}/{f.name}")
-        if files:
-            summary[category_dir.name] = files
+        if category_dir.is_dir():
+            count = sum(1 for f in category_dir.iterdir() if f.is_file())
+            if count > 0:
+                summary[category_dir.name] = count
     return summary
 
 

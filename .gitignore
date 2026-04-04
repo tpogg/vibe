@@ -3,7 +3,9 @@
 credentials.json
 *.json.bak
 
-# Downloads staging directory
+# Export and organized output
+exports/
+organized/
 downloads/
 
 # Python
