@@ -1,39 +1,38 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { server, colors, brand } = require('../config');
 const { updateGuildSetting } = require('../utils/database');
-const { vibeEmbed, successEmbed } = require('../utils/embeds');
+const { vibeEmbed } = require('../utils/embeds');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setup')
-    .setDescription('Auto-configure the entire server with the VIBE aesthetic')
+    .setDescription('Nuke all channels and rebuild the server from scratch')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   cooldown: 60,
 
   async execute(interaction) {
     await interaction.deferReply();
-
     const guild = interaction.guild;
     const log = [];
 
     try {
-      // ─── Step 1: Set server icon & banner ────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', '```ansi\n\x1b[32m> Generating server branding...\x1b[0m\n```')] });
+      // ─── Step 1: DELETE all existing channels ──────────────────────────
+      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', '```ansi\n\x1b[31m> Purging all channels...\x1b[0m\n```')] });
 
-      log.push('▸ Icon & banner: set these manually in Server Settings');
+      const existingChannels = guild.channels.cache.filter(c => c.id !== interaction.channel.id);
+      let deleted = 0;
+      for (const [, ch] of existingChannels) {
+        try { await ch.delete(); deleted++; } catch {}
+      }
+      log.push(`✓ Purged ${deleted} old channels`);
 
-      // ─── Step 2: Create roles ────────────────────────────────────────
+      // ─── Step 2: Create roles ──────────────────────────────────────────
       await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Creating roles...\x1b[0m\n\`\`\``)] });
 
       const createdRoles = {};
-      const existingRoles = guild.roles.cache;
-
       for (const roleDef of [...server.roles].reverse()) {
-        const existing = existingRoles.find(r => r.name === roleDef.name);
-        if (existing) {
-          createdRoles[roleDef.name] = existing;
-          continue;
-        }
+        const existing = guild.roles.cache.find(r => r.name === roleDef.name);
+        if (existing) { createdRoles[roleDef.name] = existing; continue; }
 
         const perms = [];
         if (roleDef.permissions) {
@@ -53,56 +52,30 @@ module.exports = {
           createdRoles[roleDef.name] = role;
         } catch {}
       }
-      log.push(`✓ ${Object.keys(createdRoles).length} roles configured`);
+      log.push(`✓ ${Object.keys(createdRoles).length} roles set`);
 
-      // ─── Step 3: Create channels ─────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Building channel structure...\x1b[0m\n\`\`\``)] });
+      // ─── Step 3: Build channels ────────────────────────────────────────
+      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Building channels...\x1b[0m\n\`\`\``)] });
 
-      const modRole = createdRoles['Moderator'];
-      let channelCount = 0;
+      const modRole = createdRoles['Mod'];
+      let chCount = 0;
 
       for (const cat of server.categories) {
-        // Check if category already exists
-        let category = guild.channels.cache.find(
-          c => c.name === cat.name && c.type === ChannelType.GuildCategory
-        );
-
-        if (!category) {
-          const permOverwrites = [];
-          if (cat.staffOnly && modRole) {
-            permOverwrites.push(
-              { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
-              { id: modRole.id, allow: [PermissionFlagsBits.ViewChannel] },
-            );
-            // Also allow Admin and Owner roles
-            if (createdRoles['Admin']) {
-              permOverwrites.push({ id: createdRoles['Admin'].id, allow: [PermissionFlagsBits.ViewChannel] });
-            }
-            if (createdRoles['Owner']) {
-              permOverwrites.push({ id: createdRoles['Owner'].id, allow: [PermissionFlagsBits.ViewChannel] });
-            }
-          }
-
-          category = await guild.channels.create({
-            name: cat.name,
-            type: ChannelType.GuildCategory,
-            permissionOverwrites: permOverwrites,
-          });
+        const permOverwrites = [];
+        if (cat.staffOnly) {
+          permOverwrites.push({ id: guild.id, deny: [PermissionFlagsBits.ViewChannel] });
+          if (modRole) permOverwrites.push({ id: modRole.id, allow: [PermissionFlagsBits.ViewChannel] });
+          if (createdRoles['Admin']) permOverwrites.push({ id: createdRoles['Admin'].id, allow: [PermissionFlagsBits.ViewChannel] });
+          if (createdRoles['Owner']) permOverwrites.push({ id: createdRoles['Owner'].id, allow: [PermissionFlagsBits.ViewChannel] });
         }
 
-        for (const ch of cat.channels) {
-          const existing = guild.channels.cache.find(
-            c => c.name === ch.name && c.parentId === category.id
-          );
-          if (existing) {
-            channelCount++;
-            // Store special channel IDs
-            if (ch.name === 'welcome') updateGuildSetting(guild.id, 'welcome_channel_id', existing.id);
-            if (ch.name === 'logs') updateGuildSetting(guild.id, 'log_channel_id', existing.id);
-            if (ch.name === 'starboard') updateGuildSetting(guild.id, 'starboard_channel_id', existing.id);
-            continue;
-          }
+        const category = await guild.channels.create({
+          name: cat.name,
+          type: ChannelType.GuildCategory,
+          permissionOverwrites: permOverwrites,
+        });
 
+        for (const ch of cat.channels) {
           const type = ch.type === 'voice' ? ChannelType.GuildVoice : ChannelType.GuildText;
           const newCh = await guild.channels.create({
             name: ch.name,
@@ -110,166 +83,149 @@ module.exports = {
             parent: category.id,
             topic: ch.topic || undefined,
           });
-          channelCount++;
+          chCount++;
 
-          // Store special channels
-          if (ch.name === 'welcome') updateGuildSetting(guild.id, 'welcome_channel_id', newCh.id);
-          if (ch.name === 'logs') updateGuildSetting(guild.id, 'log_channel_id', newCh.id);
-          if (ch.name === 'starboard') updateGuildSetting(guild.id, 'starboard_channel_id', newCh.id);
+          // Store key channel IDs
+          const raw = ch.name.replace(/^.│/, '');
+          if (raw === 'welcome' || ch.name.includes('welcome')) updateGuildSetting(guild.id, 'welcome_channel_id', newCh.id);
+          if (raw === 'mod-log' || ch.name.includes('mod-log')) updateGuildSetting(guild.id, 'log_channel_id', newCh.id);
         }
       }
-      log.push(`✓ ${channelCount} channels configured`);
+      log.push(`✓ ${chCount} channels built`);
 
-      // ─── Step 4: Set auto-role ───────────────────────────────────────
+      // ─── Step 4: Auto-role ─────────────────────────────────────────────
       const defaultRole = createdRoles['Viber'];
       if (defaultRole) {
         updateGuildSetting(guild.id, 'autorole_id', defaultRole.id);
-        log.push('✓ Auto-role set to "Viber"');
+        log.push('✓ Auto-role → Viber');
       }
 
-      // ─── Step 5: Post rules embed ───────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Posting welcome content...\x1b[0m\n\`\`\``)] });
+      // ─── Step 5: Post rules ────────────────────────────────────────────
+      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Posting content...\x1b[0m\n\`\`\``)] });
 
-      const rulesChannel = guild.channels.cache.find(c => c.name === 'rules' && c.type === ChannelType.GuildText);
+      const rulesChannel = guild.channels.cache.find(c => c.name.includes('rules') && c.type === ChannelType.GuildText);
       if (rulesChannel) {
-        const rulesEmbed = new EmbedBuilder()
+        await rulesChannel.send({ embeds: [new EmbedBuilder()
           .setColor(colors.primary)
-          .setTitle('📜  SERVER RULES')
+          .setTitle('RULES')
           .setDescription([
             '```ansi',
-            '\x1b[32m> RULES.exe loaded successfully\x1b[0m',
-            '\x1b[32m> Please read before proceeding\x1b[0m',
+            '\x1b[32m> rules.sh executed\x1b[0m',
             '```',
             '',
-            '**1.** Be respectful — keep the vibe positive',
-            '**2.** No spam, flooding, or excessive caps',
-            '**3.** No NSFW, hate speech, or harassment',
-            '**4.** No self-promotion without permission',
-            '**5.** Keep content in the right channels',
-            '**6.** Listen to staff — their word is final',
-            '**7.** No doxxing or sharing personal info',
-            '**8.** Have fun and keep the energy up',
+            '`01` Respect everyone. No exceptions.',
+            '`02` No spam or flood.',
+            '`03` No NSFW, hate, or harassment.',
+            '`04` No self-promo without permission.',
+            '`05` Right content, right channel.',
+            '`06` Staff calls are final.',
+            '`07` Keep personal info private.',
+            '`08` Vibe hard or go home.',
             '',
-            '*Breaking rules may result in warnings, mutes, or bans.*',
+            '*Violations = warn → mute → ban.*',
           ].join('\n'))
           .setFooter({ text: brand.footer })
-          .setColor(colors.primary);
-
-        await rulesChannel.send({ embeds: [rulesEmbed] });
+        ] });
         log.push('✓ Rules posted');
       }
 
-      // ─── Step 6: Post role picker ────────────────────────────────────
-      const rolesChannel = guild.channels.cache.find(c => c.name === 'roles' && c.type === ChannelType.GuildText);
+      // ─── Step 6: Role picker ───────────────────────────────────────────
+      const rolesChannel = guild.channels.cache.find(c => c.name.includes('roles') && c.type === ChannelType.GuildText);
       if (rolesChannel) {
-        const colorRoles = ['Neon Green', 'Cyber Cyan', 'Hot Magenta', 'Amber Glow', 'Red Alert', 'Ghost White'];
-        const roleEmbed = new EmbedBuilder()
-          .setColor(colors.secondary)
-          .setTitle('🎨  PICK YOUR COLOR')
-          .setDescription([
-            '```ansi',
-            '\x1b[36m> COLOR_SELECTOR.exe\x1b[0m',
-            '\x1b[36m> Click a button to get your color role\x1b[0m',
-            '```',
-            '',
-            colorRoles.map(r => `▸ **${r}**`).join('\n'),
-          ].join('\n'))
-          .setFooter({ text: 'Click again to remove the role' });
+        const colorRoles = ['Neon Green', 'Cyber Cyan', 'Hot Magenta', 'Amber Glow', 'Ghost White'];
+        const btnStyles = [ButtonStyle.Success, ButtonStyle.Primary, ButtonStyle.Danger, ButtonStyle.Secondary, ButtonStyle.Secondary];
 
-        const rows = [];
-        const btnColors = [ButtonStyle.Success, ButtonStyle.Primary, ButtonStyle.Danger, ButtonStyle.Secondary, ButtonStyle.Danger, ButtonStyle.Secondary];
         const row = new ActionRowBuilder();
         colorRoles.forEach((name, i) => {
           row.addComponents(
             new ButtonBuilder()
               .setCustomId(`role_${name.replace(/\s/g, '_')}`)
               .setLabel(name)
-              .setStyle(btnColors[i] || ButtonStyle.Secondary)
+              .setStyle(btnStyles[i])
           );
-          if ((i + 1) % 5 === 0 || i === colorRoles.length - 1) {
-            rows.push(ActionRowBuilder.from(row));
-          }
         });
 
-        // Rebuild rows properly (max 5 buttons each)
-        const properRows = [];
-        let currentRow = new ActionRowBuilder();
-        colorRoles.forEach((name, i) => {
-          currentRow.addComponents(
-            new ButtonBuilder()
-              .setCustomId(`role_${name.replace(/\s/g, '_')}`)
-              .setLabel(name)
-              .setStyle(btnColors[i] || ButtonStyle.Secondary)
-          );
-          if ((i + 1) % 5 === 0 || i === colorRoles.length - 1) {
-            properRows.push(currentRow);
-            currentRow = new ActionRowBuilder();
-          }
+        await rolesChannel.send({
+          embeds: [new EmbedBuilder()
+            .setColor(colors.secondary)
+            .setTitle('COLOR SELECT')
+            .setDescription([
+              '```ansi',
+              '\x1b[36m> color_picker.sh\x1b[0m',
+              '```',
+              'Tap a button. Tap again to remove.',
+            ].join('\n'))
+          ],
+          components: [row],
         });
-
-        await rolesChannel.send({ embeds: [roleEmbed], components: properRows });
         log.push('✓ Role picker posted');
       }
 
-      // ─── Step 7: Post ticket button ──────────────────────────────────
-      const botCmdsChannel = guild.channels.cache.find(c => c.name === 'bot-commands' && c.type === ChannelType.GuildText);
-      if (botCmdsChannel) {
-        const ticketEmbed = new EmbedBuilder()
-          .setColor(colors.accent)
-          .setTitle('🎫  SUPPORT TICKETS')
-          .setDescription([
-            '```ansi',
-            '\x1b[35m> TICKET_SYSTEM.exe\x1b[0m',
-            '\x1b[35m> Click below to open a support ticket\x1b[0m',
-            '```',
-            '',
-            'Need help? Click the button below to create a private ticket with staff.',
-          ].join('\n'));
-
-        const ticketRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('ticket_create')
-            .setLabel('Open Ticket')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🎫')
-        );
-
-        await botCmdsChannel.send({ embeds: [ticketEmbed], components: [ticketRow] });
+      // ─── Step 7: Ticket button ─────────────────────────────────────────
+      const botCh = guild.channels.cache.find(c => c.name.includes('bot-cmds') && c.type === ChannelType.GuildText);
+      if (botCh) {
+        await botCh.send({
+          embeds: [new EmbedBuilder()
+            .setColor(colors.accent)
+            .setTitle('SUPPORT')
+            .setDescription([
+              '```ansi',
+              '\x1b[35m> ticket_system.sh\x1b[0m',
+              '```',
+              'Need help? Open a private ticket with staff.',
+            ].join('\n'))
+          ],
+          components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('ticket_create')
+              .setLabel('Open Ticket')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('🎫')
+          )],
+        });
         log.push('✓ Ticket system posted');
       }
 
-      // ─── Done ────────────────────────────────────────────────────────
+      // ─── Done ──────────────────────────────────────────────────────────
       updateGuildSetting(guild.id, 'setup_complete', 1);
 
-      const finalEmbed = new EmbedBuilder()
+      // Delete the setup channel (we're in it and it's from the old layout)
+      // Send final message to general instead
+      const generalCh = guild.channels.cache.find(c => c.name.includes('general') && c.type === ChannelType.GuildText);
+      const target = generalCh || interaction.channel;
+
+      await target.send({ embeds: [new EmbedBuilder()
         .setColor(colors.primary)
-        .setTitle('✓  SETUP COMPLETE')
+        .setTitle('✓ SERVER INITIALIZED')
         .setDescription([
           '```ansi',
           '\x1b[32m' + log.join('\n') + '\x1b[0m',
           '```',
           '',
-          '**Your server is now fully configured!**',
+          '**System online.** All channels, roles, and systems are live.',
           '',
-          '▸ Channels, roles, and permissions are set',
-          '▸ Welcome system is active',
-          '▸ Role picker is in #roles',
-          '▸ Ticket system is in #bot-commands',
-          '▸ Starboard is watching for ⭐ reactions',
-          '▸ XP/leveling system is active',
-          '',
-          '*Use `/help` to see all available commands.*',
+          '`/help` — see all commands',
         ].join('\n'))
         .setFooter({ text: brand.footer })
-        .setTimestamp();
+        .setTimestamp()
+      ] });
 
-      await interaction.editReply({ embeds: [finalEmbed] });
+      // Try to delete the channel we ran setup in (old leftover)
+      try {
+        if (interaction.channel.id !== target.id) {
+          await interaction.channel.delete();
+        } else {
+          await interaction.editReply({ content: '`✓ Done.`', embeds: [] });
+        }
+      } catch {
+        await interaction.editReply({ content: '`✓ Done. You can delete this old channel.`', embeds: [] });
+      }
 
     } catch (err) {
       console.error('[SETUP ERROR]', err);
       await interaction.editReply({
-        embeds: [vibeEmbed('⚠ SETUP ERROR', `\`\`\`ansi\n\x1b[31m${err.message}\x1b[0m\n\`\`\`\n\nPartial progress:\n${log.map(l => `▸ ${l}`).join('\n')}`)],
-      });
+        embeds: [vibeEmbed('⚠ ERROR', `\`\`\`ansi\n\x1b[31m${err.message}\x1b[0m\n\`\`\`\n\n${log.map(l => `▸ ${l}`).join('\n')}`)],
+      }).catch(() => {});
     }
   },
 };
