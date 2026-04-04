@@ -1,0 +1,14 @@
+services:
+  - type: worker
+    name: discord-team-bot
+    runtime: node
+    rootDir: bot
+    buildCommand: npm install && node src/deploy-commands.js
+    startCommand: node src/index.js
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: NODE_ENV
+        value: production
