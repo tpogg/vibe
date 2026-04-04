@@ -1,311 +1,677 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ztruck.ing — Connecting Drivers & Owners</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOON TERMINAL v0.69</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --green: #33ff33;
+      --dim-green: #1a9a1a;
+      --bg: #0a0a0a;
+      --amber: #ffb000;
+      --red: #ff3333;
+      --cyan: #00e5ff;
+      --magenta: #ff00ff;
+      --pink: #ff69b4;
+      --pixel-font: 'Press Start 2P', monospace;
+      --mono: 'Share Tech Mono', 'Courier New', monospace;
+    }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #111;
-      background: #fff;
+      background: var(--bg);
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 13px;
       line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* ── Navigation ─────────────────────────────────── */
-    nav {
+    /* CRT Effects */
+    #scanlines {
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
+      pointer-events: none; z-index: 100;
+    }
+
+    #crt-glow {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.65) 100%);
+      pointer-events: none; z-index: 99;
+    }
+
+    /* Flicker */
+    @keyframes flicker {
+      0%, 97%, 100% { opacity: 1; }
+      98% { opacity: 0.92; }
+      99% { opacity: 0.96; }
+    }
+    body { animation: flicker 4s infinite; }
+
+    /* Header */
+    #header {
+      border-bottom: 2px solid var(--dim-green);
+      padding: 20px 24px 16px;
+      position: relative;
+    }
+
+    .logo-art {
+      font-family: var(--pixel-font);
+      font-size: 9px;
+      line-height: 1.3;
+      color: var(--amber);
+      white-space: pre;
+      letter-spacing: 1px;
+    }
+
+    .tagline {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      color: var(--dim-green);
+      margin-top: 8px;
+      letter-spacing: 2px;
+    }
+
+    .header-stats {
+      position: absolute;
+      right: 24px;
+      top: 20px;
+      text-align: right;
+      font-size: 11px;
+    }
+
+    .header-stats .label { color: var(--dim-green); }
+    .header-stats .val { color: var(--green); }
+    .header-stats .val-up { color: var(--green); }
+    .header-stats .val-down { color: var(--red); }
+
+    /* Ticker */
+    #ticker-wrap {
+      overflow: hidden;
+      border-bottom: 1px solid var(--dim-green);
+      padding: 6px 0;
+      background: rgba(0,50,0,0.15);
+    }
+
+    #ticker {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 24px 48px;
-      border-bottom: 1px solid #e5e5e5;
+      gap: 40px;
+      white-space: nowrap;
+      animation: scroll-ticker 30s linear infinite;
+      font-family: var(--pixel-font);
+      font-size: 8px;
     }
 
-    .logo {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      text-decoration: none;
-      color: #111;
+    @keyframes scroll-ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
     }
 
-    nav ul {
-      list-style: none;
-      display: flex;
-      gap: 32px;
+    .tick-item { display: inline-flex; gap: 8px; }
+    .tick-name { color: var(--amber); }
+    .tick-up { color: var(--green); }
+    .tick-down { color: var(--red); }
+
+    /* Main */
+    #main {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 0;
+      min-height: calc(100vh - 160px);
     }
 
-    nav a {
-      text-decoration: none;
-      color: #555;
-      font-size: 15px;
-      font-weight: 500;
-      transition: color 0.2s;
+    /* Coin Table */
+    #coin-panel {
+      padding: 16px 20px;
+      overflow-y: auto;
     }
 
-    nav a:hover {
-      color: #111;
+    .panel-title {
+      font-family: var(--pixel-font);
+      font-size: 9px;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      letter-spacing: 2px;
     }
 
-    /* ── Hero ────────────────────────────────────────── */
-    .hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 100px;
+    .coin-table {
+      width: 100%;
+      border-collapse: collapse;
     }
 
-    .hero h1 {
-      font-size: 56px;
-      font-weight: 700;
-      letter-spacing: -1.5px;
-      line-height: 1.1;
-      margin-bottom: 24px;
+    .coin-table th {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      color: var(--dim-green);
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--dim-green);
+      letter-spacing: 1px;
     }
 
-    .hero p {
-      font-size: 20px;
-      color: #555;
-      max-width: 540px;
-      margin-bottom: 40px;
+    .coin-table th.right { text-align: right; }
+
+    .coin-table td {
+      padding: 8px;
+      border-bottom: 1px solid rgba(0,80,0,0.2);
+      vertical-align: middle;
     }
 
-    .hero-buttons {
-      display: flex;
-      gap: 16px;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 14px 32px;
-      font-size: 15px;
-      font-weight: 600;
-      border-radius: 6px;
-      text-decoration: none;
-      transition: all 0.2s;
+    .coin-row {
+      transition: background 0.2s;
       cursor: pointer;
     }
 
-    .btn-primary {
-      background: #111;
-      color: #fff;
-      border: 2px solid #111;
-    }
+    .coin-row:hover { background: rgba(0,80,0,0.15); }
+    .coin-row.selected { background: rgba(0,80,0,0.25); }
 
-    .btn-primary:hover {
-      background: #333;
-      border-color: #333;
-    }
-
-    .btn-secondary {
-      background: #fff;
-      color: #111;
-      border: 2px solid #ddd;
-    }
-
-    .btn-secondary:hover {
-      border-color: #111;
-    }
-
-    /* ── Sections ────────────────────────────────────── */
-    section {
-      padding: 80px 48px;
-    }
-
-    .section-divider {
-      border-top: 1px solid #e5e5e5;
-    }
-
-    .section-title {
-      font-size: 14px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #999;
-      margin-bottom: 40px;
-      text-align: center;
-    }
-
-    /* ── Services Grid ──────────────────────────────── */
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 48px;
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .service-card h3 {
+    .coin-pixel {
       font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 12px;
+      line-height: 1;
+      image-rendering: pixelated;
     }
 
-    .service-card p {
-      color: #666;
-      font-size: 15px;
-      line-height: 1.7;
+    .coin-name {
+      font-family: var(--pixel-font);
+      font-size: 8px;
+      color: var(--green);
     }
 
-    /* ── CTA / Contact ──────────────────────────────── */
-    .cta {
-      text-align: center;
-      max-width: 600px;
-      margin: 0 auto;
+    .coin-symbol {
+      font-size: 10px;
+      color: var(--dim-green);
     }
 
-    .cta h2 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-bottom: 16px;
+    .coin-price {
+      font-family: var(--pixel-font);
+      font-size: 8px;
+      text-align: right;
+      color: var(--amber);
     }
 
-    .cta p {
-      color: #555;
-      font-size: 17px;
-      margin-bottom: 32px;
+    .coin-change {
+      font-family: var(--pixel-font);
+      font-size: 8px;
+      text-align: right;
     }
 
-    /* ── Footer ─────────────────────────────────────── */
-    footer {
-      border-top: 1px solid #e5e5e5;
-      padding: 32px 48px;
+    .coin-change.up { color: var(--green); }
+    .coin-change.down { color: var(--red); }
+
+    .coin-mcap {
+      font-size: 10px;
+      text-align: right;
+      color: var(--dim-green);
+    }
+
+    .moon-bar-cell { width: 120px; }
+
+    .moon-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .moon-bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(0,40,0,0.5);
+      position: relative;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    .moon-bar-fill {
+      height: 100%;
+      transition: width 0.5s;
+    }
+
+    .moon-score {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      min-width: 24px;
+      text-align: right;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      border-left: 1px solid var(--dim-green);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .detail-box {
+      border: 1px solid var(--dim-green);
+      padding: 12px;
+    }
+
+    .detail-title {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .detail-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      font-size: 14px;
-      color: #999;
+      margin: 4px 0;
+      font-size: 11px;
     }
 
-    footer a {
-      color: #999;
-      text-decoration: none;
+    .detail-label { color: var(--dim-green); }
+    .detail-val { color: var(--green); }
+
+    /* Pixel art coin display */
+    .pixel-coin-art {
+      font-family: var(--pixel-font);
+      font-size: 6px;
+      line-height: 1;
+      color: var(--amber);
+      white-space: pre;
+      text-align: center;
+      margin: 8px 0;
+      letter-spacing: 1px;
     }
 
-    footer a:hover {
-      color: #111;
-    }
-
-    .social-links {
+    /* Mini chart */
+    .mini-chart {
+      height: 60px;
       display: flex;
-      gap: 20px;
-      align-items: center;
+      align-items: flex-end;
+      gap: 2px;
+      margin-top: 8px;
     }
 
-    .social-links a {
+    .chart-bar {
+      flex: 1;
+      background: var(--green);
+      min-height: 2px;
+      transition: height 0.3s;
+      image-rendering: pixelated;
+    }
+
+    .chart-bar.down { background: var(--red); }
+
+    /* Activity feed */
+    .feed-item {
+      font-size: 10px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(0,80,0,0.15);
+    }
+
+    .feed-time { color: var(--dim-green); }
+    .feed-action { color: var(--green); }
+    .feed-coin { color: var(--amber); }
+    .feed-highlight { color: var(--magenta); }
+
+    /* Footer */
+    #footer {
+      border-top: 1px solid var(--dim-green);
+      padding: 8px 20px;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #999;
-      transition: color 0.2s;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--dim-green);
     }
 
-    .social-links a:hover {
-      color: #111;
+    .footer-live {
+      color: var(--green);
+      animation: blink 1.5s infinite;
     }
 
-    .social-links svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
     }
 
-    /* ── Responsive ─────────────────────────────────── */
+    .moon-phase { color: var(--amber); }
+
+    /* Glow text */
+    .glow {
+      text-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
+    }
+
+    /* Responsive */
     @media (max-width: 768px) {
-      nav {
-        flex-direction: column;
-        gap: 16px;
-        padding: 20px 24px;
-      }
-
-      nav ul {
-        gap: 20px;
-      }
-
-      .hero {
-        padding: 80px 24px 60px;
-      }
-
-      .hero h1 {
-        font-size: 36px;
-      }
-
-      .hero p {
-        font-size: 17px;
-      }
-
-      .hero-buttons {
-        flex-direction: column;
-        width: 100%;
-        max-width: 280px;
-      }
-
-      .btn {
-        text-align: center;
-      }
-
-      section {
-        padding: 60px 24px;
-      }
-
-      .services-grid {
-        grid-template-columns: 1fr;
-        gap: 36px;
-      }
-
-      .cta h2 {
-        font-size: 28px;
-      }
-
-      footer {
-        flex-direction: column;
-        gap: 12px;
-        text-align: center;
-        padding: 24px;
-      }
+      #main { grid-template-columns: 1fr; }
+      #sidebar { border-left: none; border-top: 1px solid var(--dim-green); }
+      .header-stats { position: static; text-align: left; margin-top: 10px; }
+      .moon-bar-cell { display: none; }
     }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--dim-green); }
+    ::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
 
-  <!-- Navigation -->
-  <nav>
-    <a href="/" class="logo">ztruck.ing</a>
-  </nav>
+<div id="scanlines"></div>
+<div id="crt-glow"></div>
 
-  <!-- Hero -->
-  <section class="hero">
-    <h1>Bridging the gap between<br>drivers and owners.</h1>
-    <p>ztruck.ing connects truck drivers with fleet owners and delivers software solutions built for the trucking industry.</p>
-  </section>
+<div id="header">
+  <div class="logo-art" id="logo-art"></div>
+  <div class="tagline">TRACK THE MOON. TRUST THE VIBE. DYOR.</div>
+  <div class="header-stats" id="header-stats"></div>
+</div>
 
-  <!-- Contact / CTA -->
-  <section id="contact" class="section-divider">
-    <div class="cta">
-      <h2>Let's work together.</h2>
-      <p>Whether you're a driver, fleet owner, or business looking for trucking software solutions — we'd love to hear from you.</p>
-      <a href="mailto:contact@ztruck.ing" class="btn btn-primary">contact@ztruck.ing</a>
+<div id="ticker-wrap">
+  <div id="ticker"></div>
+</div>
+
+<div id="main">
+  <div id="coin-panel">
+    <div class="panel-title">MEME COIN RADAR</div>
+    <table class="coin-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>COIN</th>
+          <th class="right">PRICE</th>
+          <th class="right">24H</th>
+          <th class="right">MCAP</th>
+          <th>MOON SCORE</th>
+        </tr>
+      </thead>
+      <tbody id="coin-tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="sidebar">
+    <div class="detail-box" id="detail-box">
+      <div class="detail-title">SELECT A COIN</div>
+      <div class="pixel-coin-art" id="coin-art"></div>
+      <div id="detail-content">
+        <div style="color:var(--dim-green);font-size:11px;text-align:center;margin-top:12px;">
+          Click a coin to inspect
+        </div>
+      </div>
     </div>
-  </section>
 
-  <!-- Footer -->
-  <footer>
-    <span>&copy; 2026 ztruck.ing. All rights reserved.</span>
-    <div class="social-links">
-      <a href="https://www.instagram.com/ztruck.ing" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-      </a>
+    <div class="detail-box">
+      <div class="detail-title">PRICE HISTORY</div>
+      <div class="mini-chart" id="mini-chart"></div>
     </div>
-  </footer>
 
+    <div class="detail-box">
+      <div class="detail-title">LIVE FEED</div>
+      <div id="feed"></div>
+    </div>
+  </div>
+</div>
+
+<div id="footer">
+  <span><span class="footer-live">&#9679;</span> LIVE DATA (simulated)</span>
+  <span class="moon-phase" id="moon-phase"></span>
+  <span>MOON TERMINAL v0.69 | NOT FINANCIAL ADVICE</span>
+</div>
+
+<script>
+// ─── Data ────────────────────────────────────────────────────────────────────
+const COINS = [
+  { name: 'DOGECOIN',    sym: 'DOGE',   icon: '\u{1F436}', price: 0.1542,    mcap: 20.1e9,  moonBase: 72, vibe: 'legendary' },
+  { name: 'SHIBA INU',   sym: 'SHIB',   icon: '\u{1F43A}', price: 0.0000234, mcap: 13.8e9,  moonBase: 65, vibe: 'certified' },
+  { name: 'PEPE',        sym: 'PEPE',   icon: '\u{1F438}', price: 0.0000089, mcap: 3.7e9,   moonBase: 81, vibe: 'ascended' },
+  { name: 'BONK',        sym: 'BONK',   icon: '\u{1F9B4}', price: 0.0000312, mcap: 1.9e9,   moonBase: 58, vibe: 'unhinged' },
+  { name: 'FLOKI',       sym: 'FLOKI',  icon: '\u2694\uFE0F',  price: 0.000187,  mcap: 1.6e9,   moonBase: 54, vibe: 'viking' },
+  { name: 'WOJAK',       sym: 'WOJAK',  icon: '\u{1F62D}', price: 0.000042,  mcap: 420e6,   moonBase: 88, vibe: 'feels' },
+  { name: 'MOON FROG',   sym: 'MFRG',   icon: '\u{1F31D}', price: 0.00069,   mcap: 69e6,    moonBase: 95, vibe: 'immaculate' },
+  { name: 'RUG PULL',    sym: 'RUGP',   icon: '\u26A0\uFE0F',  price: 0.0000001, mcap: 1.2e6,   moonBase: 12, vibe: 'sus' },
+  { name: 'GIGA CHAD',   sym: 'GIGA',   icon: '\u{1F4AA}', price: 0.00420,   mcap: 210e6,   moonBase: 77, vibe: 'based' },
+  { name: 'PUMP DOT FUN', sym: 'PUMP',  icon: '\u{1F680}', price: 0.00133,   mcap: 88e6,    moonBase: 69, vibe: 'wagmi' },
+  { name: 'TURBO',       sym: 'TURBO',  icon: '\u{1F40C}', price: 0.00892,   mcap: 560e6,   moonBase: 63, vibe: 'zooming' },
+  { name: 'SNEK',        sym: 'SNEK',   icon: '\u{1F40D}', price: 0.000156,  mcap: 95e6,    moonBase: 71, vibe: 'slithery' },
+];
+
+// mutable state
+const state = COINS.map(c => ({
+  ...c,
+  change: (Math.random() - 0.4) * 30,
+  currentPrice: c.price,
+  history: Array.from({length: 20}, () => c.price * (0.8 + Math.random() * 0.4)),
+  moonScore: c.moonBase + Math.floor(Math.random() * 10 - 5),
+}));
+
+let selectedIdx = null;
+
+// ─── Logo ────────────────────────────────────────────────────────────────────
+const LOGO = `
+ __  __  ___   ___  _  _
+|  \\/  |/ _ \\ / _ \\| \\| |
+| |\\/| | (_) | (_) | .  |
+|_|  |_|\\___/ \\___/|_|\\_|
+ TERMINAL`;
+
+document.getElementById('logo-art').textContent = LOGO.trim();
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1) return '$' + n.toFixed(4);
+  const s = n.toFixed(10);
+  const match = s.match(/^0\.(0*)/);
+  const zeros = match ? match[1].length : 0;
+  if (zeros > 4) return `$0.0{${zeros}}${s.slice(2 + zeros, 2 + zeros + 4)}`;
+  return '$' + n.toFixed(Math.max(4, zeros + 3));
+}
+
+function fmtMcap(n) {
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function moonColor(score) {
+  if (score >= 80) return 'var(--green)';
+  if (score >= 60) return 'var(--amber)';
+  if (score >= 40) return 'var(--cyan)';
+  return 'var(--red)';
+}
+
+// ─── Render table ────────────────────────────────────────────────────────────
+const tbody = document.getElementById('coin-tbody');
+
+function renderTable() {
+  tbody.innerHTML = '';
+  state.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'coin-row' + (selectedIdx === i ? ' selected' : '');
+    tr.onclick = () => selectCoin(i);
+
+    const chClass = c.change >= 0 ? 'up' : 'down';
+    const chSign = c.change >= 0 ? '+' : '';
+    const mc = moonColor(c.moonScore);
+
+    tr.innerHTML = `
+      <td class="coin-pixel">${c.icon}</td>
+      <td><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.sym}</div></td>
+      <td class="coin-price">${fmt(c.currentPrice)}</td>
+      <td class="coin-change ${chClass}">${chSign}${c.change.toFixed(1)}%</td>
+      <td class="coin-mcap">${fmtMcap(c.mcap)}</td>
+      <td class="moon-bar-cell">
+        <div class="moon-bar-wrap">
+          <div class="moon-bar">
+            <div class="moon-bar-fill" style="width:${c.moonScore}%;background:${mc}"></div>
+          </div>
+          <span class="moon-score" style="color:${mc}">${c.moonScore}</span>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─── Coin detail ─────────────────────────────────────────────────────────────
+const PIXEL_ARTS = {
+  DOGE: `
+  .--.
+ / oo \\
+( >  < )
+ \\ -- /
+  '--'`,
+  PEPE: `
+ .---.
+/ o o \\
+|  __  |
+ \\_  _/
+  '--'`,
+  default: `
+  /\\
+ /  \\
+/ $$ \\
+------`
+};
+
+function selectCoin(i) {
+  selectedIdx = i;
+  const c = state[i];
+  const art = PIXEL_ARTS[c.sym] || PIXEL_ARTS.default;
+
+  document.getElementById('coin-art').textContent = art;
+  document.getElementById('detail-box').querySelector('.detail-title').textContent = c.icon + ' ' + c.name;
+
+  const chClass = c.change >= 0 ? 'val-up' : 'val-down';
+  const chSign = c.change >= 0 ? '+' : '';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Symbol</span><span class="detail-val">${c.sym}</span></div>
+    <div class="detail-row"><span class="detail-label">Price</span><span class="detail-val">${fmt(c.currentPrice)}</span></div>
+    <div class="detail-row"><span class="detail-label">24h</span><span class="${chClass}">${chSign}${c.change.toFixed(2)}%</span></div>
+    <div class="detail-row"><span class="detail-label">MCap</span><span class="detail-val">${fmtMcap(c.mcap)}</span></div>
+    <div class="detail-row"><span class="detail-label">Moon</span><span class="detail-val" style="color:${moonColor(c.moonScore)}">${c.moonScore}/100</span></div>
+    <div class="detail-row"><span class="detail-label">Vibe</span><span class="detail-val" style="color:var(--magenta)">${c.vibe}</span></div>
+  `;
+
+  renderChart(c);
+  renderTable();
+}
+
+// ─── Mini chart ──────────────────────────────────────────────────────────────
+function renderChart(c) {
+  const chart = document.getElementById('mini-chart');
+  chart.innerHTML = '';
+  const max = Math.max(...c.history);
+  const min = Math.min(...c.history);
+  const range = max - min || 1;
+
+  c.history.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    const h = ((v - min) / range) * 52 + 8;
+    bar.style.height = h + 'px';
+    if (i > 0 && v < c.history[i - 1]) bar.classList.add('down');
+    chart.appendChild(bar);
+  });
+}
+
+// ─── Ticker ──────────────────────────────────────────────────────────────────
+function renderTicker() {
+  const ticker = document.getElementById('ticker');
+  let html = '';
+  // duplicate for seamless scroll
+  for (let rep = 0; rep < 2; rep++) {
+    state.forEach(c => {
+      const cls = c.change >= 0 ? 'tick-up' : 'tick-down';
+      const sign = c.change >= 0 ? '\u25B2' : '\u25BC';
+      html += `<span class="tick-item"><span class="tick-name">${c.sym}</span><span class="${cls}">${fmt(c.currentPrice)} ${sign}${Math.abs(c.change).toFixed(1)}%</span></span>`;
+    });
+  }
+  ticker.innerHTML = html;
+}
+
+// ─── Header stats ────────────────────────────────────────────────────────────
+function renderHeaderStats() {
+  const totalMcap = state.reduce((a, c) => a + c.mcap, 0);
+  const avgMoon = Math.round(state.reduce((a, c) => a + c.moonScore, 0) / state.length);
+  const topCoin = state.reduce((a, c) => c.moonScore > a.moonScore ? c : a);
+
+  document.getElementById('header-stats').innerHTML = `
+    <div><span class="label">TOTAL MEME MCAP </span><span class="val">${fmtMcap(totalMcap)}</span></div>
+    <div><span class="label">AVG MOON SCORE  </span><span class="val">${avgMoon}/100</span></div>
+    <div><span class="label">TOP VIBE        </span><span class="val">${topCoin.icon} ${topCoin.sym}</span></div>
+    <div><span class="label">COINS TRACKED   </span><span class="val">${state.length}</span></div>
+  `;
+}
+
+// ─── Live feed ───────────────────────────────────────────────────────────────
+const ACTIONS = [
+  (c) => `<span class="feed-coin">${c.sym}</span> <span class="feed-action">price ticked ${c.change >= 0 ? 'up' : 'down'}</span>`,
+  (c) => `whale bought <span class="feed-coin">${c.sym}</span> <span class="feed-highlight">${fmtMcap(Math.random() * 1e6 + 10000)}</span>`,
+  (c) => `<span class="feed-coin">${c.sym}</span> moon score: <span class="feed-highlight">${c.moonScore}</span>`,
+  (c) => `new holder joined <span class="feed-coin">${c.sym}</span>`,
+  (c) => `<span class="feed-coin">${c.sym}</span> vibe check: <span class="feed-highlight">${c.vibe}</span>`,
+  (c) => `<span class="feed-coin">${c.sym}</span> trending on dex`,
+  (c) => `<span class="feed-coin">${c.sym}</span> liquidity ${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 5).toFixed(1)}%`,
+];
+
+const feedEl = document.getElementById('feed');
+const feedItems = [];
+
+function addFeedItem() {
+  const c = state[Math.floor(Math.random() * state.length)];
+  const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+  const now = new Date();
+  const time = now.toTimeString().slice(0, 8);
+
+  feedItems.unshift(`<div class="feed-item"><span class="feed-time">${time}</span> ${action(c)}</div>`);
+  if (feedItems.length > 8) feedItems.pop();
+  feedEl.innerHTML = feedItems.join('');
+}
+
+// ─── Moon phase ──────────────────────────────────────────────────────────────
+function getMoonPhase() {
+  const phases = ['\u{1F311} NEW', '\u{1F312} WAXING', '\u{1F313} QUARTER', '\u{1F314} GIBBOUS', '\u{1F315} FULL', '\u{1F316} WANING', '\u{1F317} QUARTER', '\u{1F318} CRESCENT'];
+  const day = Math.floor(Date.now() / 86400000) % 8;
+  return phases[day];
+}
+document.getElementById('moon-phase').textContent = getMoonPhase();
+
+// ─── Price simulation ────────────────────────────────────────────────────────
+function tick() {
+  state.forEach(c => {
+    const delta = (Math.random() - 0.48) * 0.04;
+    c.currentPrice *= (1 + delta);
+    c.change += delta * 100;
+    c.change = Math.max(-99, Math.min(999, c.change));
+    c.mcap *= (1 + delta);
+
+    // moon score drifts
+    c.moonScore = Math.max(1, Math.min(99, c.moonScore + Math.floor(Math.random() * 3 - 1)));
+
+    c.history.push(c.currentPrice);
+    if (c.history.length > 20) c.history.shift();
+  });
+
+  renderTable();
+  renderTicker();
+  renderHeaderStats();
+  if (selectedIdx !== null) {
+    selectCoin(selectedIdx);
+  }
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+renderTable();
+renderTicker();
+renderHeaderStats();
+renderChart(state[0]);
+addFeedItem();
+addFeedItem();
+addFeedItem();
+
+setInterval(tick, 2000);
+setInterval(addFeedItem, 3000);
+</script>
 </body>
 </html>
