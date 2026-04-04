@@ -138,23 +138,149 @@ def run_once():
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         import json as _json
-        status = last_scan_status.copy()
-        try:
-            watchlist = Watchlist()
-            status["domains_tracked"] = len(watchlist)
-            status["top_domains"] = [
-                {"name": d.get("name"), "score": d.get("score", 0)}
-                for d in watchlist.get_top(10)
-            ]
-        except Exception:
-            pass
-        self.send_response(200)
+        from urllib.parse import urlparse, parse_qs
+
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        path = parsed.path.rstrip("/")
+
+        if path == "/webhook/test":
+            # Returns a sample payload for testing webhook integration
+            self._send_json(200, _sample_webhook_payload())
+        elif path == "/api/watchlist":
+            # Full watchlist with all domain details
+            self._send_json(200, _full_watchlist_payload(params))
+        elif path == "/api/top":
+            n = int(params.get("n", ["25"])[0])
+            self._send_json(200, _top_domains_payload(n))
+        elif path == "/api/alerts":
+            # High-value domains needing action (pending delete, high score)
+            self._send_json(200, _alerts_payload())
+        else:
+            # Default status
+            self._send_json(200, _status_payload())
+
+    def do_POST(self):
+        # Accept POST for webhook-style integrations
+        self.do_GET()
+
+    def _send_json(self, code, data):
+        import json as _json
+        body = _json.dumps(data, indent=2).encode()
+        self.send_response(code)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
-        self.wfile.write(_json.dumps(status, indent=2).encode())
+        self.wfile.write(body)
 
     def log_message(self, format, *args):
         pass
+
+
+def _status_payload() -> dict:
+    watchlist = Watchlist()
+    return {
+        "status": "running",
+        "domains_found": last_scan_status.get("domains_found", 0),
+        "domains_tracked": len(watchlist),
+        "last_scan": last_scan_status.get("last_scan", "never"),
+        "next_scan_hours": Config.CHECK_INTERVAL_HOURS,
+        "errors": last_scan_status.get("errors", []),
+    }
+
+
+def _top_domains_payload(n: int = 25) -> dict:
+    watchlist = Watchlist()
+    top = watchlist.get_top(n)
+    return {
+        "count": len(top),
+        "domains": [
+            {
+                "name": d.get("name"),
+                "score": d.get("score", 0),
+                "status": d.get("status", ""),
+                "domain_age_years": d.get("domain_age_years", 0),
+                "backlinks": d.get("backlinks", 0),
+                "referring_domains": d.get("domain_pop", 0),
+                "trust_flow": d.get("trust_flow", 0),
+                "citation_flow": d.get("citation_flow", 0),
+                "page_rank": d.get("page_rank", 0),
+                "expiration_date": d.get("expiration_date", ""),
+                "purchased": d.get("purchased", False),
+            }
+            for d in top
+        ],
+    }
+
+
+def _alerts_payload() -> dict:
+    """High-priority domains: high score or pending deletion."""
+    watchlist = Watchlist()
+    all_domains = watchlist.get_top(100)
+
+    alerts = []
+    for d in all_domains:
+        reasons = []
+        if d.get("status") == "pending_delete":
+            reasons.append("DROPPING_SOON")
+        if d.get("score", 0) >= 30:
+            reasons.append("HIGH_VALUE")
+        if d.get("trust_flow", 0) >= 20:
+            reasons.append("HIGH_TRUST_FLOW")
+        if reasons:
+            alerts.append({
+                "name": d.get("name"),
+                "score": d.get("score", 0),
+                "alerts": reasons,
+                "status": d.get("status", ""),
+                "backlinks": d.get("backlinks", 0),
+                "trust_flow": d.get("trust_flow", 0),
+                "expiration_date": d.get("expiration_date", ""),
+            })
+
+    return {"alert_count": len(alerts), "alerts": alerts}
+
+
+def _full_watchlist_payload(params: dict) -> dict:
+    watchlist = Watchlist()
+    min_score = float(params.get("min_score", ["0"])[0])
+    status_filter = params.get("status", [None])[0]
+    tld_filter = params.get("tld", [None])[0]
+
+    domains = list(watchlist.entries.values())
+
+    if min_score > 0:
+        domains = [d for d in domains if d.get("score", 0) >= min_score]
+    if status_filter:
+        domains = [d for d in domains if d.get("status") == status_filter]
+    if tld_filter:
+        domains = [d for d in domains if d.get("tld") == tld_filter]
+
+    domains.sort(key=lambda d: d.get("score", 0), reverse=True)
+
+    return {
+        "total": len(domains),
+        "filters": {"min_score": min_score, "status": status_filter, "tld": tld_filter},
+        "domains": domains,
+    }
+
+
+def _sample_webhook_payload() -> dict:
+    return {
+        "event": "domain_alert",
+        "domains": [
+            {"name": "example.com", "score": 72.5, "status": "pending_delete",
+             "alerts": ["DROPPING_SOON", "HIGH_VALUE"]},
+        ],
+        "message": "Webhook test successful. Wire this URL to your Discord/Slack webhook.",
+        "endpoints": {
+            "/": "Bot status overview",
+            "/api/top?n=10": "Top N domains by score",
+            "/api/alerts": "High-priority domains needing action",
+            "/api/watchlist": "Full watchlist (filterable: ?min_score=20&status=expired&tld=com)",
+            "/webhook/test": "This test payload",
+        },
+    }
 
 
 def start_health_server():
