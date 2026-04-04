@@ -73,11 +73,18 @@ def score_domain(domain: EnrichedDomain) -> float:
 
 
 def passes_minimum_thresholds(domain: EnrichedDomain) -> bool:
-    """Check if domain meets minimum configured thresholds."""
-    if domain.domain_age_years < Config.MIN_DOMAIN_AGE_YEARS:
+    """Check if domain meets minimum configured thresholds.
+
+    If SEO metrics are missing (e.g. unauthenticated scrape), skip those checks
+    so we still capture domains for enrichment via PageRank/RDAP.
+    """
+    # If we have age data and it's too young, skip
+    if domain.domain_age_years > 0 and domain.domain_age_years < Config.MIN_DOMAIN_AGE_YEARS:
         return False
-    if domain.backlinks < Config.MIN_BACKLINKS:
+    # If we have backlink data and it's too low, skip
+    if domain.backlinks > 0 and domain.backlinks < Config.MIN_BACKLINKS:
         return False
+    # If we have PageRank data and it's too low, skip
     if domain.page_rank > 0 and domain.page_rank < (Config.MIN_DOMAIN_AUTHORITY / 10.0):
         return False
     return True

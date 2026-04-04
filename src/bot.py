@@ -69,10 +69,13 @@ def run_scan():
     raw_domains = scraper.fetch_all(pages_per_category=3)
 
     if not raw_domains:
-        console.print("[yellow]No domains found in this scan.[/yellow]")
+        console.print("[yellow]No domains found in this scan. Check ED_USERNAME/ED_PASSWORD env vars.[/yellow]")
         return
 
     console.print(f"[green]Found {len(raw_domains)} raw domains[/green]")
+    # Log first few for debugging
+    for d in raw_domains[:5]:
+        console.print(f"  [dim]sample: {d.name} BL={d.backlinks} DP={d.domain_pop} TF={d.trust_flow}[/dim]")
 
     # 2. Enrich with SEO data
     console.print("[dim]Enriching with RDAP + PageRank data...[/dim]")
