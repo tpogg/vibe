@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, Collection, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, ActivityType, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./utils/database');
@@ -102,7 +102,20 @@ const STATUSES = [
 ];
 
 let si = 0;
-client.once('ready', () => {
+client.once('ready', async () => {
+  // Auto-register slash commands
+  try {
+    const commands = [];
+    for (const [, cmd] of client.commands) {
+      commands.push(cmd.data.toJSON());
+    }
+    const rest = new REST({ version: '10' }).setToken(token);
+    await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+    console.log(`[VIBE] Registered ${commands.length} slash commands globally`);
+  } catch (err) {
+    console.error('[VIBE] Failed to register commands:', err.message);
+  }
+
   const rotate = () => {
     const s = STATUSES[si++ % STATUSES.length];
     client.user.setActivity(s.name, { type: s.type });
