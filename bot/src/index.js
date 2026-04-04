@@ -110,8 +110,11 @@ client.once('ready', async () => {
       commands.push(cmd.data.toJSON());
     }
     const rest = new REST({ version: '10' }).setToken(token);
-    await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-    console.log(`[VIBE] Registered ${commands.length} slash commands globally`);
+    // Register to each guild (instant) instead of globally (takes up to 1hr)
+    for (const guild of client.guilds.cache.values()) {
+      await rest.put(Routes.applicationGuildCommands(client.user.id, guild.id), { body: commands });
+      console.log(`[VIBE] Registered ${commands.length} commands in guild: ${guild.name}`);
+    }
   } catch (err) {
     console.error('[VIBE] Failed to register commands:', err.message);
   }
