@@ -1,711 +1,477 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VIBE TERMINAL v1.0</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1V9</title>
+  <meta name="description" content="1V9">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --green: #00ff41;
-      --dim-green: #00aa2a;
-      --dark-green: #003b0e;
-      --bg: #0a0a0a;
-      --amber: #ffb000;
-      --red: #ff3c3c;
-      --cyan: #00e5ff;
-      --magenta: #ff00ff;
+      --bg: #0c0a1a;
+      --purple: #6c3ce0;
+      --pink: #f472b6;
+      --blue: #60a5fa;
+      --white: #f0eef6;
+      --dim: #6b6580;
     }
 
-    body {
+    html, body {
+      height: 100%;
       background: var(--bg);
-      color: var(--green);
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.5;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #scanlines {
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.15) 2px,
-        rgba(0,0,0,0.15) 4px
-      );
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    #crt-glow {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
-      pointer-events: none;
-      z-index: 9;
-    }
-
-    #terminal {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      overflow: hidden;
-    }
-
-    #output {
-      flex: 1;
-      overflow-y: auto;
+      color: var(--white);
+      font-family: 'Space Grotesk', sans-serif;
       overflow-x: hidden;
-      padding-bottom: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--dim-green) transparent;
+      cursor: crosshair;
     }
 
-    #output::-webkit-scrollbar { width: 4px; }
-    #output::-webkit-scrollbar-thumb { background: var(--dim-green); }
+    /* ── bg shapes ── */
+    .bg-shapes {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
 
-    .line { white-space: pre-wrap; word-break: break-all; margin: 0; }
-    .line-green { color: var(--green); }
-    .line-dim { color: var(--dim-green); }
-    .line-amber { color: var(--amber); }
-    .line-red { color: var(--red); }
-    .line-cyan { color: var(--cyan); }
-    .line-magenta { color: var(--magenta); }
-    .line-white { color: #fff; }
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: float 20s ease-in-out infinite;
+    }
 
-    #input-row {
+    .shape-1 {
+      width: 600px; height: 600px;
+      background: var(--purple);
+      top: -20%; left: -10%;
+      animation-delay: 0s;
+    }
+    .shape-2 {
+      width: 500px; height: 500px;
+      background: var(--pink);
+      bottom: -15%; right: -10%;
+      animation-delay: -7s;
+    }
+    .shape-3 {
+      width: 400px; height: 400px;
+      background: var(--blue);
+      top: 30%; right: 20%;
+      animation-delay: -14s;
+      opacity: 0.08;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -40px) scale(1.05); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    /* ── noise ── */
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px;
+    }
+
+    /* ── layout ── */
+    .page {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
       display: flex;
-      align-items: center;
-      border-top: 1px solid var(--dark-green);
-      padding-top: 10px;
-      margin-top: 4px;
-      flex-shrink: 0;
-    }
-
-    #prompt { color: var(--green); margin-right: 6px; white-space: nowrap; }
-
-    #input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--green);
-      font-family: inherit;
-      font-size: inherit;
-      caret-color: var(--green);
-    }
-
-    #input::selection { background: var(--dark-green); }
-
-    /* Matrix canvas overlay */
-    #matrix-canvas {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: black;
-    }
-
-    #matrix-exit {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 21;
-      color: var(--green);
-      font-family: inherit;
-      font-size: 12px;
-      opacity: 0.7;
-    }
-
-    /* Snake game */
-    #snake-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: var(--bg);
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 40px 24px;
     }
 
-    #snake-header {
-      color: var(--green);
-      font-size: 18px;
-      margin-bottom: 12px;
-      letter-spacing: 4px;
-    }
-
-    #snake-score-display {
-      color: var(--amber);
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-
-    #snake-canvas {
-      border: 1px solid var(--dim-green);
-      image-rendering: pixelated;
-    }
-
-    #snake-msg {
-      color: var(--red);
-      margin-top: 10px;
-      font-size: 12px;
-      height: 20px;
-    }
-
-    #snake-controls {
-      color: var(--dim-green);
-      margin-top: 8px;
-      font-size: 11px;
-    }
-
-    /* Typewriter blink */
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .cursor::after { content: '█'; animation: blink 1s infinite; margin-left: 1px; }
-
-    /* ASCII art colors */
-    .logo { color: var(--green); }
-
-    /* Progress bar animation */
-    @keyframes fill { from{width:0} to{width:100%} }
-
-    #fortune-display {
-      border: 1px solid var(--dim-green);
-      padding: 10px 16px;
-      margin: 4px 0;
-      color: var(--amber);
+    /* ── coin ── */
+    .coin-wrap {
       position: relative;
+      margin-bottom: 48px;
+    }
+
+    .coin {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: conic-gradient(from 180deg, #6c3ce0, #f472b6, #60a5fa, #6c3ce0);
+      padding: 4px;
+      animation: spin-slow 12s linear infinite;
+      position: relative;
+    }
+
+    .coin-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a1030, #2d1b4e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .coin-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(244,114,182,0.3), transparent 60%);
+    }
+
+    .coin-text {
+      font-size: 64px;
+      font-weight: 700;
+      letter-spacing: -3px;
+      color: white;
+      text-shadow: 0 2px 20px rgba(108,60,224,0.5);
+      z-index: 1;
+      position: relative;
+    }
+
+    .coin-text span {
+      font-size: 52px;
+      color: var(--pink);
+    }
+
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .coin-glow {
+      position: absolute;
+      inset: -40px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(108,60,224,0.2), transparent 70%);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.15); opacity: 0.8; }
+    }
+
+    /* ── text ── */
+    .title {
+      font-size: clamp(14px, 2vw, 18px);
+      font-weight: 300;
+      letter-spacing: 12px;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .tagline {
+      font-size: clamp(28px, 5vw, 56px);
+      font-weight: 700;
+      letter-spacing: -2px;
+      text-align: center;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--white) 0%, var(--pink) 50%, var(--purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sub {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(14px, 1.5vw, 17px);
+      font-weight: 300;
+      color: var(--dim);
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.6;
+      margin-bottom: 48px;
+    }
+
+    /* ── ticker ── */
+    .ticker {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 24px;
+      border: 1px solid rgba(108,60,224,0.2);
+      border-radius: 100px;
+      background: rgba(108,60,224,0.06);
+      margin-bottom: 48px;
+      animation: border-glow 4s ease-in-out infinite;
+    }
+
+    @keyframes border-glow {
+      0%, 100% { border-color: rgba(108,60,224,0.15); }
+      50% { border-color: rgba(244,114,182,0.3); }
+    }
+
+    .ticker-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--pink);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .ticker-text {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    /* ── cta ── */
+    .cta-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 14px 36px;
+      border-radius: 100px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      color: white;
+      box-shadow: 0 4px 30px rgba(108,60,224,0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(108,60,224,0.5);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--dim);
+      border: 1px solid rgba(108,60,224,0.2);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--pink);
+      color: var(--white);
+    }
+
+    /* ── bottom ── */
+    .bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: rgba(107,101,128,0.5);
+      letter-spacing: 1px;
+    }
+
+    .bottom a {
+      color: rgba(107,101,128,0.5);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .bottom a:hover {
+      color: var(--pink);
+    }
+
+    /* ── floating geo shapes ── */
+    .geo {
+      position: fixed;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.06;
+    }
+
+    .geo-ring {
+      width: 160px;
+      height: 160px;
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      top: 12%;
+      right: 8%;
+      animation: float 15s ease-in-out infinite;
+    }
+
+    .geo-square {
+      width: 60px;
+      height: 60px;
+      border: 2px solid var(--pink);
+      top: 20%;
+      left: 8%;
+      transform: rotate(45deg);
+      animation: float 18s ease-in-out infinite reverse;
+    }
+
+    .geo-dot {
+      width: 12px;
+      height: 12px;
+      background: var(--purple);
+      border-radius: 50%;
+      bottom: 25%;
+      left: 15%;
+      animation: float 10s ease-in-out infinite;
+      animation-delay: -5s;
+    }
+
+    .geo-line {
+      width: 80px;
+      height: 2px;
+      background: var(--pink);
+      bottom: 35%;
+      right: 12%;
+      animation: float 12s ease-in-out infinite;
+      animation-delay: -3s;
+    }
+
+    /* ── responsive ── */
+    @media (max-width: 600px) {
+      .coin { width: 160px; height: 160px; }
+      .coin-text { font-size: 48px; }
+      .coin-text span { font-size: 38px; }
+      .bottom { padding: 16px 20px; flex-direction: column; gap: 8px; }
+    }
+
+    /* ── custom cursor trail ── */
+    .cursor-trail {
+      position: fixed;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      background: var(--pink);
+      opacity: 0;
+      transition: opacity 0.3s;
     }
   </style>
 </head>
 <body>
 
-<div id="scanlines"></div>
-<div id="crt-glow"></div>
-
-<canvas id="matrix-canvas"></canvas>
-<div id="matrix-exit">[ press ESC or Q to exit matrix ]</div>
-
-<div id="snake-overlay">
-  <div id="snake-header">S N A K E</div>
-  <div id="snake-score-display">SCORE: 0 | HIGH SCORE: 0</div>
-  <canvas id="snake-canvas" width="400" height="400"></canvas>
-  <div id="snake-msg"></div>
-  <div id="snake-controls">WASD / ARROW KEYS to move | ESC to quit</div>
-</div>
-
-<div id="terminal">
-  <div id="output"></div>
-  <div id="input-row">
-    <span id="prompt">visitor@vibe:~$</span>
-    <input id="input" type="text" autocomplete="off" autofocus spellcheck="false" />
+  <div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
   </div>
-</div>
+  <div class="noise"></div>
 
-<script>
-// ─── Terminal engine ──────────────────────────────────────────────────────────
-const output = document.getElementById('output');
-const input  = document.getElementById('input');
-const history = [];
-let histIdx = -1;
+  <div class="geo geo-ring"></div>
+  <div class="geo geo-square"></div>
+  <div class="geo geo-dot"></div>
+  <div class="geo geo-line"></div>
 
-function print(text, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
+  <div class="page">
+    <div class="coin-wrap">
+      <div class="coin-glow"></div>
+      <div class="coin">
+        <div class="coin-inner">
+          <div class="coin-text">1<span>v</span>9</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="title">something is coming</div>
+
+    <div class="tagline">carry everything.</div>
+
+    <div class="sub">you already know what this is. if you don't, you will.</div>
+
+    <div class="ticker">
+      <div class="ticker-dot"></div>
+      <div class="ticker-text">launching soon</div>
+    </div>
+
+    <div class="cta-row">
+      <a href="https://x.com" target="_blank" class="btn btn-primary">follow the signal</a>
+      <a href="mailto:hello@1v9.ai" class="btn btn-ghost">inquiries</a>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <span>1v9.ai</span>
+    <span>this domain may be available — <a href="mailto:hello@1v9.ai">inquire</a></span>
+  </div>
+
+  <script>
+    // Cursor trail
+    const trails = [];
+    for (let i = 0; i < 6; i++) {
       const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.textContent = text;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
-  });
-}
-
-function printRaw(html, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.innerHTML = html;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
-  });
-}
-
-async function printLines(lines, cls = 'line-green', baseDelay = 0, step = 0) {
-  for (let i = 0; i < lines.length; i++) {
-    await print(lines[i], cls, baseDelay + i * step);
-  }
-}
-
-function blank(delay = 0) { return print('', 'line-green', delay); }
-
-function echoCmd(cmd) {
-  print(`visitor@vibe:~$ ${cmd}`, 'line-dim');
-}
-
-// ─── Boot sequence ────────────────────────────────────────────────────────────
-const LOGO = [
-  '██╗   ██╗██╗██████╗ ███████╗',
-  '██║   ██║██║██╔══██╗██╔════╝',
-  '██║   ██║██║██████╔╝█████╗  ',
-  '╚██╗ ██╔╝██║██╔══██╗██╔══╝  ',
-  ' ╚████╔╝ ██║██████╔╝███████╗',
-  '  ╚═══╝  ╚═╝╚═════╝ ╚══════╝',
-  '  T E R M I N A L   v 1 . 0 ',
-];
-
-async function boot() {
-  await print('Initializing VIBE OS...', 'line-dim', 0);
-  await print('[████████████████████] 100%  OK', 'line-dim', 400);
-  await blank(600);
-
-  for (let i = 0; i < LOGO.length; i++) {
-    await print(LOGO[i], 'line-green', 700 + i * 60);
-  }
-
-  await blank(1200);
-  await print('Welcome. Type  help  to see available commands.', 'line-cyan', 1300);
-  await blank(1350);
-  input.focus();
-}
-
-// ─── Commands ─────────────────────────────────────────────────────────────────
-const COMMANDS = {};
-
-COMMANDS.help = async () => {
-  const cmds = [
-    ['help',    'show this message'],
-    ['about',   'who is this?'],
-    ['skills',  'tech stack & skills'],
-    ['projects','featured projects'],
-    ['contact', 'get in touch'],
-    ['fortune', 'random wisdom'],
-    ['matrix',  'enter the matrix'],
-    ['snake',   'play snake'],
-    ['weather', 'fake weather report'],
-    ['hack',    'look like a hacker (very important)'],
-    ['clear',   'clear the terminal'],
-    ['date',    'show current date/time'],
-    ['whoami',  'who are you?'],
-  ];
-  await blank();
-  await print('┌─ AVAILABLE COMMANDS ──────────────────────────┐', 'line-cyan');
-  for (const [cmd, desc] of cmds) {
-    await print(`│  ${cmd.padEnd(12)}  ${desc.padEnd(32)} │`, 'line-cyan');
-  }
-  await print('└───────────────────────────────────────────────┘', 'line-cyan');
-  await blank();
-};
-
-COMMANDS.about = async () => {
-  await blank();
-  const lines = [
-    '  ╔══════════════════════════════════════╗',
-    '  ║           ABOUT THE OPERATOR         ║',
-    '  ╠══════════════════════════════════════╣',
-    '  ║  NAME     : vibe.operator            ║',
-    '  ║  STATUS   : caffeine-dependent       ║',
-    '  ║  LOCATION : somewhere on the grid    ║',
-    '  ║  MISSION  : build cool things        ║',
-    '  ║  WEAKNESS : shiny new frameworks     ║',
-    '  ╚══════════════════════════════════════╝',
-  ];
-  await printLines(lines, 'line-cyan', 0, 40);
-  await blank();
-  await print('  A developer who believes good software should feel alive.', 'line-green');
-  await print('  This terminal is proof of concept #1.', 'line-green');
-  await blank();
-};
-
-COMMANDS.skills = async () => {
-  await blank();
-  const skills = [
-    { label: 'JavaScript / TypeScript', pct: 92, color: 'line-amber' },
-    { label: 'Python                  ', pct: 85, color: 'line-cyan' },
-    { label: 'Rust                    ', pct: 60, color: 'line-green' },
-    { label: 'CSS / Design            ', pct: 78, color: 'line-magenta' },
-    { label: 'Systems / Infra         ', pct: 70, color: 'line-amber' },
-    { label: 'Vibes                   ', pct: 100, color: 'line-green' },
-  ];
-
-  await print('  SKILL MATRIX:', 'line-cyan');
-  await blank();
-
-  for (const s of skills) {
-    const bar = '█'.repeat(Math.floor(s.pct / 5)) + '░'.repeat(20 - Math.floor(s.pct / 5));
-    await print(`  ${s.label}  [${bar}] ${s.pct}%`, s.color);
-  }
-  await blank();
-};
-
-COMMANDS.projects = async () => {
-  await blank();
-  const projects = [
-    { name: 'VIBE TERMINAL', tech: 'HTML/CSS/JS', desc: 'Retro terminal portfolio. You\'re in it.' },
-    { name: 'GRID ENGINE',   tech: 'Rust/WASM',   desc: 'Procedural world gen in the browser.' },
-    { name: 'SIGNAL BOT',    tech: 'Python',       desc: 'Discord bot that summarizes your server.' },
-    { name: 'NEON DB',       tech: 'TypeScript',   desc: 'Tiny in-memory document store.' },
-    { name: '???',           tech: '???',          desc: 'Something is cooking. Stay tuned.' },
-  ];
-
-  for (const p of projects) {
-    await print(`┌─[ ${p.name} ]`, 'line-magenta');
-    await print(`│  tech : ${p.tech}`, 'line-dim');
-    await print(`│  desc : ${p.desc}`, 'line-green');
-    await print('└─────────────────────────────────────────────', 'line-magenta');
-    await blank();
-  }
-};
-
-COMMANDS.contact = async () => {
-  await blank();
-  await print('  ┌─ CONTACT ────────────────────────────────┐', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  │  github   : github.com/tpogg/vibe        │', 'line-amber');
-  await print('  │  email    : hello@vibe.terminal          │', 'line-amber');
-  await print('  │  matrix   : @operator:matrix.org         │', 'line-amber');
-  await print('  │  vibe     : immaculate                   │', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  └──────────────────────────────────────────┘', 'line-amber');
-  await blank();
-};
-
-const FORTUNES = [
-  'The best code is the code you never have to write.',
-  'It works on my machine. Ship the machine.',
-  'Any fool can write code a computer understands. Write code humans understand.',
-  'Debugging is like being a detective in a crime movie where you are also the murderer.',
-  'The first 90% takes 90% of the time. The last 10% takes the other 90%.',
-  'Always code as if the person maintaining your code is a violent psychopath who knows where you live.',
-  'Premature optimization is the root of all evil. But so is premature abstraction.',
-  'There are 2 hard problems in computer science: caching, naming things, and off-by-one errors.',
-  'A bug in production is worth two in development.',
-  'The cloud is just someone else\'s computer — and it\'s on fire.',
-  'Ship fast, but not so fast you forget to test.',
-  'The best feature is the one your users actually use.',
-  '"Works for me" is not a valid deployment strategy.',
-  'Every system eventually becomes a distributed system.',
-  'You ain\'t gonna need it — until you do.',
-  'Write tests first, regret later — but less.',
-];
-
-COMMANDS.fortune = async () => {
-  const f = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-  await blank();
-  await print('  ╔══ FORTUNE ═══════════════════════════════════════╗', 'line-amber');
-  const words = f.split(' ');
-  let line = '  ║  ';
-  for (const w of words) {
-    if ((line + w).length > 54) {
-      await print(line.padEnd(55) + '║', 'line-amber');
-      line = '  ║  ' + w + ' ';
-    } else {
-      line += w + ' ';
-    }
-  }
-  if (line.trim() !== '║') {
-    await print(line.padEnd(55) + '║', 'line-amber');
-  }
-  await print('  ╚══════════════════════════════════════════════════╝', 'line-amber');
-  await blank();
-};
-
-COMMANDS.date = async () => {
-  const now = new Date();
-  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' };
-  await blank();
-  await print('  ' + now.toLocaleString('en-US', opts), 'line-cyan');
-  await print('  UNIX: ' + Math.floor(now.getTime()/1000), 'line-dim');
-  await blank();
-};
-
-COMMANDS.whoami = async () => {
-  await blank();
-  await print('  visitor', 'line-green');
-  await print('  groups: users, curious, potentially_dangerous', 'line-dim');
-  await blank();
-};
-
-COMMANDS.weather = async () => {
-  const conditions = ['NEON RAIN', 'DIGITAL FOG', 'BINARY SUNSHINE', 'CYBER OVERCAST', 'GLITCH STORM'];
-  const cond = conditions[Math.floor(Math.random() * conditions.length)];
-  const temp = (Math.random() * 30 + 10).toFixed(1);
-  const humidity = Math.floor(Math.random() * 60 + 30);
-  const wind = Math.floor(Math.random() * 50 + 5);
-
-  await blank();
-  await print('  WEATHER REPORT :: THE GRID', 'line-cyan');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print(`  Condition  : ${cond}`, 'line-amber');
-  await print(`  Temp       : ${temp}°C`, 'line-green');
-  await print(`  Humidity   : ${humidity}%`, 'line-green');
-  await print(`  Wind       : ${wind} km/h`, 'line-green');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print('  forecast   : 100% chance of staying inside', 'line-dim');
-  await blank();
-};
-
-COMMANDS.hack = async () => {
-  await blank();
-  await print('  Initiating hack sequence...', 'line-red');
-  const fakeLines = [
-    'Scanning network interfaces...',
-    'Bypassing firewall... ████████ DONE',
-    'Injecting payload into mainframe...',
-    'Decrypting AES-256 keys... just kidding',
-    'Accessing NSA backdoor... ERROR: backdoor too obvious',
-    'Pivoting through 7 proxies...',
-    'Rooting target system...',
-    'Uploading "totally_not_malware.exe"...',
-    'Covering tracks... rm -rf /var/log/*',
-    '> ACCESS GRANTED',
-    '',
-    '  just kidding. this is art.',
-  ];
-  for (let i = 0; i < fakeLines.length; i++) {
-    await print('  ' + fakeLines[i], i === fakeLines.length - 3 ? 'line-red' : i === fakeLines.length -1 ? 'line-dim' : 'line-green', i * 120);
-  }
-  await blank(fakeLines.length * 120 + 200);
-};
-
-COMMANDS.clear = async () => {
-  output.innerHTML = '';
-};
-
-// ─── Matrix ───────────────────────────────────────────────────────────────────
-COMMANDS.matrix = () => {
-  const canvas = document.getElementById('matrix-canvas');
-  const matExit = document.getElementById('matrix-exit');
-  canvas.style.display = 'block';
-  matExit.style.display = 'block';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
-
-  const fontSize = 14;
-  const cols = Math.floor(canvas.width / fontSize);
-  const drops = Array(cols).fill(1);
-  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&';
-
-  let animId;
-  function draw() {
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00ff41';
-    ctx.font = fontSize + 'px monospace';
-    for (let i = 0; i < drops.length; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
-    animId = requestAnimationFrame(draw);
-  }
-  animId = requestAnimationFrame(draw);
-
-  function exitMatrix(e) {
-    if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
-      cancelAnimationFrame(animId);
-      canvas.style.display = 'none';
-      matExit.style.display = 'none';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      document.removeEventListener('keydown', exitMatrix);
-      input.focus();
-      print('  [ exited matrix ]', 'line-dim');
-    }
-  }
-  document.addEventListener('keydown', exitMatrix);
-  print('  [ matrix mode — press ESC or Q to exit ]', 'line-dim');
-};
-
-// ─── Snake ────────────────────────────────────────────────────────────────────
-COMMANDS.snake = () => {
-  const overlay = document.getElementById('snake-overlay');
-  const canvas  = document.getElementById('snake-canvas');
-  const scoreEl = document.getElementById('snake-score-display');
-  const msgEl   = document.getElementById('snake-msg');
-  overlay.style.display = 'flex';
-
-  const CELL = 20;
-  const COLS = 20;
-  const ROWS = 20;
-  const ctx  = canvas.getContext('2d');
-
-  let snake, dir, nextDir, food, score, highScore = 0, gameLoop, alive;
-
-  function reset() {
-    snake   = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
-    dir     = {x:1,y:0};
-    nextDir = {x:1,y:0};
-    food    = randomFood();
-    score   = 0;
-    alive   = true;
-    msgEl.textContent = '';
-    updateScore();
-  }
-
-  function randomFood() {
-    let f;
-    do {
-      f = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-    } while (snake.some(s => s.x===f.x && s.y===f.y));
-    return f;
-  }
-
-  function updateScore() {
-    scoreEl.textContent = `SCORE: ${score} | HIGH SCORE: ${highScore}`;
-  }
-
-  function draw() {
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // grid
-    ctx.strokeStyle = '#001a05';
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        ctx.strokeRect(c*CELL, r*CELL, CELL, CELL);
-      }
+      el.className = 'cursor-trail';
+      document.body.appendChild(el);
+      trails.push({ el, x: 0, y: 0 });
     }
 
-    // food
-    ctx.fillStyle = '#ff3c3c';
-    ctx.fillRect(food.x*CELL+2, food.y*CELL+2, CELL-4, CELL-4);
+    let mx = 0, my = 0;
+    document.addEventListener('mousemove', (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+      trails.forEach(t => t.el.style.opacity = '0.4');
+    });
 
-    // snake
-    for (let i = 0; i < snake.length; i++) {
-      const s = snake[i];
-      ctx.fillStyle = i===0 ? '#00ff41' : '#00aa2a';
-      ctx.fillRect(s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2);
+    function animateTrails() {
+      let x = mx, y = my;
+      trails.forEach((t, i) => {
+        const speed = 0.15 - i * 0.02;
+        t.x += (x - t.x) * speed;
+        t.y += (y - t.y) * speed;
+        t.el.style.left = t.x - 3 + 'px';
+        t.el.style.top = t.y - 3 + 'px';
+        t.el.style.transform = `scale(${1 - i * 0.12})`;
+        t.el.style.opacity = `${0.4 - i * 0.06}`;
+        x = t.x;
+        y = t.y;
+      });
+      requestAnimationFrame(animateTrails);
     }
-  }
+    animateTrails();
 
-  function step() {
-    dir = nextDir;
-    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-        snake.some(s => s.x===head.x && s.y===head.y)) {
-      alive = false;
-      if (score > highScore) highScore = score;
-      updateScore();
-      clearInterval(gameLoop);
-      msgEl.textContent = `GAME OVER — SCORE: ${score}  [ press R to restart ]`;
-      return;
-    }
-
-    snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score += 10;
-      updateScore();
-      food = randomFood();
-    } else {
-      snake.pop();
-    }
-    draw();
-  }
-
-  function onKey(e) {
-    const map = {
-      ArrowUp:'U', ArrowDown:'D', ArrowLeft:'L', ArrowRight:'R',
-      w:'U', s:'D', a:'L', d:'R',
-      W:'U', S:'D', A:'L', D:'R',
-    };
-    const d = map[e.key];
-    if (d) {
-      e.preventDefault();
-      const dirs = {U:{x:0,y:-1},D:{x:0,y:1},L:{x:-1,y:0},R:{x:1,y:0}};
-      const nd = dirs[d];
-      if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
-    }
-    if (e.key === 'r' || e.key === 'R') {
-      clearInterval(gameLoop);
-      reset();
-      draw();
-      gameLoop = setInterval(step, 120);
-    }
-    if (e.key === 'Escape') {
-      clearInterval(gameLoop);
-      document.removeEventListener('keydown', onKey);
-      overlay.style.display = 'none';
-      input.focus();
-      print('  [ snake exited ]', 'line-dim');
-    }
-  }
-
-  document.addEventListener('keydown', onKey);
-  reset();
-  draw();
-  gameLoop = setInterval(step, 120);
-};
-
-// ─── Input handling ───────────────────────────────────────────────────────────
-input.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') {
-    const cmd = input.value.trim().toLowerCase();
-    input.value = '';
-    histIdx = -1;
-
-    echoCmd(cmd);
-
-    if (!cmd) return;
-    history.unshift(cmd);
-
-    if (COMMANDS[cmd]) {
-      await COMMANDS[cmd]();
-    } else {
-      await blank();
-      await print(`  command not found: ${cmd}`, 'line-red');
-      await print('  type  help  for available commands', 'line-dim');
-      await blank();
-    }
-  }
-
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (histIdx < history.length - 1) histIdx++;
-    input.value = history[histIdx] || '';
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (histIdx > 0) histIdx--;
-    else { histIdx = -1; input.value = ''; }
-    input.value = histIdx >= 0 ? history[histIdx] : '';
-  }
-
-  if (e.key === 'l' && e.ctrlKey) {
-    e.preventDefault();
-    await COMMANDS.clear();
-  }
-});
-
-// keep focus on input
-document.addEventListener('click', () => {
-  if (document.getElementById('snake-overlay').style.display === 'flex') return;
-  if (document.getElementById('matrix-canvas').style.display === 'block') return;
-  input.focus();
-});
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-boot();
-</script>
+    // Parallax shapes on mouse
+    const shapes = document.querySelectorAll('.shape');
+    document.addEventListener('mousemove', (e) => {
+      const cx = e.clientX / window.innerWidth - 0.5;
+      const cy = e.clientY / window.innerHeight - 0.5;
+      shapes.forEach((s, i) => {
+        const d = (i + 1) * 15;
+        s.style.transform = `translate(${cx * d}px, ${cy * d}px)`;
+      });
+    });
+  </script>
 </body>
 </html>
