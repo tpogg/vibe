@@ -20,6 +20,12 @@ module.exports = {
   EMAIL_PASS: process.env.EMAIL_PASS || '',
   EMAIL_TO: process.env.EMAIL_TO || '',
 
+  // Twilio SMS
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
+  TWILIO_FROM_NUMBER: process.env.TWILIO_FROM_NUMBER || '',
+  TWILIO_TO_NUMBER: process.env.TWILIO_TO_NUMBER || '',
+
   // Request settings
   REQUEST_TIMEOUT_MS: 15000,
   REQUEST_DELAY_MS: 2000, // delay between retailer requests to be polite

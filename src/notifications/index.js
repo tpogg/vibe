@@ -53,6 +53,28 @@ async function sendDiscord(message, embeds = []) {
   });
 }
 
+// Twilio SMS notification
+let twilioClient = null;
+function getTwilioClient() {
+  if (!twilioClient && config.TWILIO_ACCOUNT_SID && config.TWILIO_AUTH_TOKEN) {
+    const twilio = require('twilio');
+    twilioClient = twilio(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN);
+  }
+  return twilioClient;
+}
+
+async function sendSMS(message) {
+  const client = getTwilioClient();
+  if (!client || !config.TWILIO_TO_NUMBER) return;
+
+  await client.messages.create({
+    body: message,
+    from: config.TWILIO_FROM_NUMBER,
+    to: config.TWILIO_TO_NUMBER,
+  });
+  console.log(`[SMS] Sent to ${config.TWILIO_TO_NUMBER}`);
+}
+
 // Email notification
 let emailTransport = null;
 function getEmailTransport() {
@@ -133,6 +155,12 @@ async function processPendingAlerts() {
         );
       }
 
+      // SMS via Twilio
+      if (config.TWILIO_ACCOUNT_SID) {
+        const smsBody = `${alertTypeLabel(alert.alert_type)}\n${alert.name}\n${alert.retailer} — ${alert.price ? '$' + alert.price.toFixed(2) : 'N/A'}\n${alert.url}`;
+        await sendSMS(smsBody);
+      }
+
       stmts.markAlertNotified.run(alert.id);
     } catch (err) {
       console.error(`[NOTIFY] Failed to send alert ${alert.id}:`, err.message);
@@ -171,4 +199,4 @@ function buildEmailHTML(alert) {
   `;
 }
 
-module.exports = { addSSEClient, sendSSE, sendDiscord, sendEmail, processPendingAlerts };
+module.exports = { addSSEClient, sendSSE, sendDiscord, sendEmail, sendSMS, processPendingAlerts };
