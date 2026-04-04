@@ -1,7 +1,7 @@
 const express = require('express');
 const { stmts } = require('../db');
 const { scanAll, scanRetailer } = require('../scrapers');
-const { addSSEClient, processPendingAlerts } = require('../notifications');
+const { addSSEClient, processPendingAlerts, sendDiscord, sendSMS } = require('../notifications');
 const config = require('../config');
 
 const router = express.Router();
@@ -102,6 +102,35 @@ router.get('/api/events', (req, res) => {
   addSSEClient(res);
 });
 
+// ── Test notifications ───────────────────────────────────────────────────────
+router.post('/api/test/discord', async (req, res) => {
+  if (!config.DISCORD_WEBHOOK_URL) return res.status(400).json({ error: 'DISCORD_WEBHOOK_URL not set' });
+  try {
+    await sendDiscord('', [{
+      title: 'Pokemon Card Tracker — Test Alert',
+      description: 'Your Discord webhook is working! Stock alerts will appear here.',
+      color: 0x00ff41,
+      fields: [
+        { name: 'Retailers', value: 'Pokemon Center, Amazon, Walmart, Target, Best Buy, GameStop, TCGPlayer', inline: false },
+        { name: 'Status', value: 'CONNECTED', inline: true },
+      ],
+    }]);
+    res.json({ success: true, message: 'Test message sent to Discord' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/api/test/sms', async (req, res) => {
+  if (!config.TWILIO_ACCOUNT_SID) return res.status(400).json({ error: 'Twilio not configured' });
+  try {
+    await sendSMS('Pokemon Card Tracker — Test alert! If you see this, SMS notifications are working.');
+    res.json({ success: true, message: 'Test SMS sent' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Config (read-only, no secrets) ───────────────────────────────────────────
 router.get('/api/config', (req, res) => {
   res.json({
@@ -109,6 +138,7 @@ router.get('/api/config', (req, res) => {
     retailers: config.RETAILERS,
     productTypes: config.PRODUCT_TYPES,
     discordEnabled: !!config.DISCORD_WEBHOOK_URL,
+    smsEnabled: !!config.TWILIO_ACCOUNT_SID,
     emailEnabled: config.EMAIL_ENABLED,
   });
 });
