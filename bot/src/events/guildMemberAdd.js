@@ -1,5 +1,5 @@
+const { MessageFlags } = require('discord.js');
 const { getGuildSettings } = require('../utils/database');
-const { welcomeEmbed } = require('../utils/embeds');
 
 module.exports = {
   name: 'guildMemberAdd',
@@ -8,25 +8,20 @@ module.exports = {
   async execute(member) {
     const settings = getGuildSettings(member.guild.id);
 
-    // Auto-role
-    if (settings?.autorole_id) {
-      try {
-        const role = member.guild.roles.cache.get(settings.autorole_id);
-        if (role) await member.roles.add(role);
-      } catch (err) {
-        console.error('[AUTOROLE]', err.message);
-      }
-    }
+    // Don't auto-role — user must verify first
+    // The verification system grants the Viber role after passing
 
-    // Welcome message
+    // Silent log to welcome channel (no notification)
     if (settings?.welcome_channel_id) {
       try {
         const channel = member.guild.channels.cache.get(settings.welcome_channel_id);
         if (!channel) return;
 
-        const embed = welcomeEmbed(member);
-
-        await channel.send({ embeds: [embed] });
+        // Minimal, silent join log — no ping, no noise
+        await channel.send({
+          content: `\`>\` **${member.user.username}** connected to the grid. (\`#${member.guild.memberCount}\`)`,
+          flags: [MessageFlags.SuppressNotifications],
+        });
       } catch (err) {
         console.error('[WELCOME]', err.message);
       }

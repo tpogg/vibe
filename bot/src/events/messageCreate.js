@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, MessageFlags } = require('discord.js');
 const { leveling, colors, brand } = require('../config');
 const { addXp, getXp, setLevel, getGuildSettings } = require('../utils/database');
 const { levelUpEmbed } = require('../utils/embeds');
@@ -98,10 +98,13 @@ module.exports = {
           }
         }
 
-        // Send level-up message
+        // Silent level-up — no notification spam
         try {
-          await message.channel.send({
+          const botCh = message.guild.channels.cache.find(c => c.name.includes('bot-cmds'));
+          const target = botCh || message.channel;
+          await target.send({
             embeds: [levelUpEmbed(message.author, newLevel, roleName)],
+            flags: [MessageFlags.SuppressNotifications],
           });
         } catch {}
       }

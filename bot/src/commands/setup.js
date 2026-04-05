@@ -54,17 +54,43 @@ module.exports = {
       }
       log.push(`✓ ${Object.keys(createdRoles).length} roles`);
 
-      // ─── Step 3: CHANNELS ──────────────────────────────────────────────
+      // ─── Step 3: VERIFICATION CHANNEL ──────────────────────────────────
       await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> mkdir -p channels/*\x1b[0m\n\`\`\``)] });
 
       const modRole = createdRoles['Mod'];
+      const viberRole = createdRoles['Viber'];
       let chCount = 0;
 
+      // Create verify channel — visible to EVERYONE, even unverified
+      const verifyCh = await guild.channels.create({
+        name: '🔐│verify',
+        type: ChannelType.GuildText,
+        topic: 'Verify to access the server.',
+        permissionOverwrites: [
+          { id: guild.id, allow: [PermissionFlagsBits.ViewChannel], deny: [PermissionFlagsBits.SendMessages] },
+          { id: guild.members.me.id, allow: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel] },
+          // Verified users don't need to see this channel
+          ...(viberRole ? [{ id: viberRole.id, deny: [PermissionFlagsBits.ViewChannel] }] : []),
+        ],
+      });
+      chCount++;
+      log.push('✓ Verification gate created');
+
+      // ─── Step 3b: BUILD CHANNELS (locked behind Viber role) ────────────
       for (const cat of server.categories) {
-        // Category permissions
         const catPerms = [];
+
         if (cat.staffOnly) {
+          // Staff-only: hidden from everyone except staff
           catPerms.push({ id: guild.id, deny: [PermissionFlagsBits.ViewChannel] });
+          for (const r of ['Mod', 'Admin', 'Owner']) {
+            if (createdRoles[r]) catPerms.push({ id: createdRoles[r].id, allow: [PermissionFlagsBits.ViewChannel] });
+          }
+        } else {
+          // Regular categories: hidden from @everyone, visible to Viber (verified)
+          catPerms.push({ id: guild.id, deny: [PermissionFlagsBits.ViewChannel] });
+          if (viberRole) catPerms.push({ id: viberRole.id, allow: [PermissionFlagsBits.ViewChannel] });
+          // Staff can always see
           for (const r of ['Mod', 'Admin', 'Owner']) {
             if (createdRoles[r]) catPerms.push({ id: createdRoles[r].id, allow: [PermissionFlagsBits.ViewChannel] });
           }
@@ -201,6 +227,40 @@ module.exports = {
         }
       }
       log.push('✓ Feed channels initialized');
+
+      // ─── Step 7b: Post verification embed ──────────────────────────────
+      if (verifyCh) {
+        await verifyCh.send({
+          embeds: [new EmbedBuilder()
+            .setColor(colors.primary)
+            .setTitle('🔐 VERIFICATION')
+            .setDescription([
+              '```ansi',
+              '\x1b[32m> verify.sh — identity check required\x1b[0m',
+              '\x1b[32m> protocol: CAPTCHA + account age scan\x1b[0m',
+              '```',
+              '',
+              'Click the button below to verify your identity.',
+              'You\'ll receive a **6-character code** to enter.',
+              '',
+              '`▸` Account must be at least **3 days** old',
+              '`▸` You get **3 attempts** before lockout',
+              '`▸` Code expires after **2 minutes**',
+              '',
+              '*After verification, this channel disappears and the full server unlocks.*',
+            ].join('\n'))
+            .setFooter({ text: brand.footer })
+          ],
+          components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('verify_start')
+              .setLabel('VERIFY')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('🔐')
+          )],
+        });
+        log.push('✓ Verification gate posted');
+      }
 
       // ─── Step 8: AutoMod v2 Rules ─────────────────────────────────────
       await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> automod --configure\x1b[0m\n\`\`\``)] });

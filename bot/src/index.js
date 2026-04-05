@@ -75,7 +75,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // Buttons
   if (interaction.isButton()) {
-    for (const sys of ['ticket', 'reactionroles']) {
+    for (const sys of ['verify', 'ticket', 'reactionroles']) {
       try {
         const handler = require(`./systems/${sys}`);
         if (handler.handleButton && await handler.handleButton(interaction, client)) return;
@@ -85,6 +85,12 @@ client.on('interactionCreate', async (interaction) => {
 
   // Modals
   if (interaction.isModalSubmit()) {
+    // Verify modal
+    try {
+      const v = require('./systems/verify');
+      if (v.handleModal && await v.handleModal(interaction, client)) return;
+    } catch {}
+    // Ticket modal
     try {
       const t = require('./systems/ticket');
       if (t.handleModal) await t.handleModal(interaction, client);
