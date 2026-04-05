@@ -3,192 +3,356 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VIBE TERMINAL v1.0</title>
+  <title>MOON TERMINAL v0.69</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green: #00ff41;
-      --dim-green: #00aa2a;
-      --dark-green: #003b0e;
+      --green: #33ff33;
+      --dim-green: #1a9a1a;
       --bg: #0a0a0a;
       --amber: #ffb000;
-      --red: #ff3c3c;
+      --red: #ff3333;
       --cyan: #00e5ff;
       --magenta: #ff00ff;
+      --pink: #ff69b4;
+      --pixel-font: 'Press Start 2P', monospace;
+      --mono: 'Share Tech Mono', 'Courier New', monospace;
     }
 
     body {
       background: var(--bg);
       color: var(--green);
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.5;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
+    /* CRT Effects */
     #scanlines {
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.15) 2px,
-        rgba(0,0,0,0.15) 4px
-      );
-      pointer-events: none;
-      z-index: 10;
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
+      pointer-events: none; z-index: 100;
     }
 
     #crt-glow {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
-      pointer-events: none;
-      z-index: 9;
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.65) 100%);
+      pointer-events: none; z-index: 99;
     }
 
-    #terminal {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      overflow: hidden;
+    /* Flicker */
+    @keyframes flicker {
+      0%, 97%, 100% { opacity: 1; }
+      98% { opacity: 0.92; }
+      99% { opacity: 0.96; }
+    }
+    body { animation: flicker 4s infinite; }
+
+    /* Header */
+    #header {
+      border-bottom: 2px solid var(--dim-green);
+      padding: 20px 24px 16px;
+      position: relative;
     }
 
-    #output {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding-bottom: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--dim-green) transparent;
-    }
-
-    #output::-webkit-scrollbar { width: 4px; }
-    #output::-webkit-scrollbar-thumb { background: var(--dim-green); }
-
-    .line { white-space: pre-wrap; word-break: break-all; margin: 0; }
-    .line-green { color: var(--green); }
-    .line-dim { color: var(--dim-green); }
-    .line-amber { color: var(--amber); }
-    .line-red { color: var(--red); }
-    .line-cyan { color: var(--cyan); }
-    .line-magenta { color: var(--magenta); }
-    .line-white { color: #fff; }
-
-    #input-row {
-      display: flex;
-      align-items: center;
-      border-top: 1px solid var(--dark-green);
-      padding-top: 10px;
-      margin-top: 4px;
-      flex-shrink: 0;
-    }
-
-    #prompt { color: var(--green); margin-right: 6px; white-space: nowrap; }
-
-    #input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--green);
-      font-family: inherit;
-      font-size: inherit;
-      caret-color: var(--green);
-    }
-
-    #input::selection { background: var(--dark-green); }
-
-    /* Matrix canvas overlay */
-    #matrix-canvas {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: black;
-    }
-
-    #matrix-exit {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 21;
-      color: var(--green);
-      font-family: inherit;
-      font-size: 12px;
-      opacity: 0.7;
-    }
-
-    /* Snake game */
-    #snake-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: var(--bg);
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #snake-header {
-      color: var(--green);
-      font-size: 18px;
-      margin-bottom: 12px;
-      letter-spacing: 4px;
-    }
-
-    #snake-score-display {
+    .logo-art {
+      font-family: var(--pixel-font);
+      font-size: 9px;
+      line-height: 1.3;
       color: var(--amber);
-      margin-bottom: 8px;
-      font-size: 13px;
+      white-space: pre;
+      letter-spacing: 1px;
     }
 
-    #snake-canvas {
-      border: 1px solid var(--dim-green);
-      image-rendering: pixelated;
-    }
-
-    #snake-msg {
-      color: var(--red);
-      margin-top: 10px;
-      font-size: 12px;
-      height: 20px;
-    }
-
-    #snake-controls {
+    .tagline {
+      font-family: var(--pixel-font);
+      font-size: 7px;
       color: var(--dim-green);
       margin-top: 8px;
+      letter-spacing: 2px;
+    }
+
+    .header-stats {
+      position: absolute;
+      right: 24px;
+      top: 20px;
+      text-align: right;
       font-size: 11px;
     }
 
-    /* Typewriter blink */
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .cursor::after { content: '█'; animation: blink 1s infinite; margin-left: 1px; }
+    .header-stats .label { color: var(--dim-green); }
+    .header-stats .val { color: var(--green); }
+    .header-stats .val-up { color: var(--green); }
+    .header-stats .val-down { color: var(--red); }
 
-    /* ASCII art colors */
-    .logo { color: var(--green); }
-
-    /* Progress bar animation */
-    @keyframes fill { from{width:0} to{width:100%} }
-
-    #fortune-display {
-      border: 1px solid var(--dim-green);
-      padding: 10px 16px;
-      margin: 4px 0;
-      color: var(--amber);
-      position: relative;
+    /* Ticker */
+    #ticker-wrap {
+      overflow: hidden;
+      border-bottom: 1px solid var(--dim-green);
+      padding: 6px 0;
+      background: rgba(0,50,0,0.15);
     }
+
+    #ticker {
+      display: flex;
+      gap: 40px;
+      white-space: nowrap;
+      animation: scroll-ticker 30s linear infinite;
+      font-family: var(--pixel-font);
+      font-size: 8px;
+    }
+
+    @keyframes scroll-ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .tick-item { display: inline-flex; gap: 8px; }
+    .tick-name { color: var(--amber); }
+    .tick-up { color: var(--green); }
+    .tick-down { color: var(--red); }
+
+    /* Main */
+    #main {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 0;
+      min-height: calc(100vh - 160px);
+    }
+
+    /* Coin Table */
+    #coin-panel {
+      padding: 16px 20px;
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-family: var(--pixel-font);
+      font-size: 9px;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      letter-spacing: 2px;
+    }
+
+    .coin-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .coin-table th {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      color: var(--dim-green);
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--dim-green);
+      letter-spacing: 1px;
+    }
+
+    .coin-table th.right { text-align: right; }
+
+    .coin-table td {
+      padding: 8px;
+      border-bottom: 1px solid rgba(0,80,0,0.2);
+      vertical-align: middle;
+    }
+
+    .coin-row {
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+
+    .coin-row:hover { background: rgba(0,80,0,0.15); }
+    .coin-row.selected { background: rgba(0,80,0,0.25); }
+
+    .coin-pixel {
+      font-size: 20px;
+      line-height: 1;
+      image-rendering: pixelated;
+    }
+
+    .coin-name {
+      font-family: var(--pixel-font);
+      font-size: 8px;
+      color: var(--green);
+    }
+
+    .coin-symbol {
+      font-size: 10px;
+      color: var(--dim-green);
+    }
+
+    .coin-price {
+      font-family: var(--pixel-font);
+      font-size: 8px;
+      text-align: right;
+      color: var(--amber);
+    }
+
+    .coin-change {
+      font-family: var(--pixel-font);
+      font-size: 8px;
+      text-align: right;
+    }
+
+    .coin-change.up { color: var(--green); }
+    .coin-change.down { color: var(--red); }
+
+    .coin-mcap {
+      font-size: 10px;
+      text-align: right;
+      color: var(--dim-green);
+    }
+
+    .moon-bar-cell { width: 120px; }
+
+    .moon-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .moon-bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(0,40,0,0.5);
+      position: relative;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    .moon-bar-fill {
+      height: 100%;
+      transition: width 0.5s;
+    }
+
+    .moon-score {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      min-width: 24px;
+      text-align: right;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      border-left: 1px solid var(--dim-green);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .detail-box {
+      border: 1px solid var(--dim-green);
+      padding: 12px;
+    }
+
+    .detail-title {
+      font-family: var(--pixel-font);
+      font-size: 7px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+      font-size: 11px;
+    }
+
+    .detail-label { color: var(--dim-green); }
+    .detail-val { color: var(--green); }
+
+    /* Pixel art coin display */
+    .pixel-coin-art {
+      font-family: var(--pixel-font);
+      font-size: 6px;
+      line-height: 1;
+      color: var(--amber);
+      white-space: pre;
+      text-align: center;
+      margin: 8px 0;
+      letter-spacing: 1px;
+    }
+
+    /* Mini chart */
+    .mini-chart {
+      height: 60px;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      margin-top: 8px;
+    }
+
+    .chart-bar {
+      flex: 1;
+      background: var(--green);
+      min-height: 2px;
+      transition: height 0.3s;
+      image-rendering: pixelated;
+    }
+
+    .chart-bar.down { background: var(--red); }
+
+    /* Activity feed */
+    .feed-item {
+      font-size: 10px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(0,80,0,0.15);
+    }
+
+    .feed-time { color: var(--dim-green); }
+    .feed-action { color: var(--green); }
+    .feed-coin { color: var(--amber); }
+    .feed-highlight { color: var(--magenta); }
+
+    /* Footer */
+    #footer {
+      border-top: 1px solid var(--dim-green);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--dim-green);
+    }
+
+    .footer-live {
+      color: var(--green);
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .moon-phase { color: var(--amber); }
+
+    /* Glow text */
+    .glow {
+      text-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #main { grid-template-columns: 1fr; }
+      #sidebar { border-left: none; border-top: 1px solid var(--dim-green); }
+      .header-stats { position: static; text-align: left; margin-top: 10px; }
+      .moon-bar-cell { display: none; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--dim-green); }
+    ::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
@@ -196,516 +360,436 @@
 <div id="scanlines"></div>
 <div id="crt-glow"></div>
 
-<canvas id="matrix-canvas"></canvas>
-<div id="matrix-exit">[ press ESC or Q to exit matrix ]</div>
-
-<div id="snake-overlay">
-  <div id="snake-header">S N A K E</div>
-  <div id="snake-score-display">SCORE: 0 | HIGH SCORE: 0</div>
-  <canvas id="snake-canvas" width="400" height="400"></canvas>
-  <div id="snake-msg"></div>
-  <div id="snake-controls">WASD / ARROW KEYS to move | ESC to quit</div>
+<div id="header">
+  <div class="logo-art" id="logo-art"></div>
+  <div class="tagline">TRACK THE MOON. TRUST THE VIBE. DYOR.</div>
+  <div class="header-stats" id="header-stats"></div>
 </div>
 
-<div id="terminal">
-  <div id="output"></div>
-  <div id="input-row">
-    <span id="prompt">visitor@vibe:~$</span>
-    <input id="input" type="text" autocomplete="off" autofocus spellcheck="false" />
+<div id="ticker-wrap">
+  <div id="ticker"></div>
+</div>
+
+<div id="main">
+  <div id="coin-panel">
+    <div class="panel-title">MEME COIN RADAR</div>
+    <table class="coin-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>COIN</th>
+          <th class="right">PRICE</th>
+          <th class="right">24H</th>
+          <th class="right">MCAP</th>
+          <th>MOON SCORE</th>
+        </tr>
+      </thead>
+      <tbody id="coin-tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="sidebar">
+    <div class="detail-box" id="detail-box">
+      <div class="detail-title">SELECT A COIN</div>
+      <div class="pixel-coin-art" id="coin-art"></div>
+      <div id="detail-content">
+        <div style="color:var(--dim-green);font-size:11px;text-align:center;margin-top:12px;">
+          Click a coin to inspect
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-box">
+      <div class="detail-title">PRICE HISTORY</div>
+      <div class="mini-chart" id="mini-chart"></div>
+    </div>
+
+    <div class="detail-box">
+      <div class="detail-title">LIVE FEED</div>
+      <div id="feed"></div>
+    </div>
   </div>
 </div>
 
+<div id="footer">
+  <span><span class="footer-live">&#9679;</span> <span id="data-source">CONNECTING...</span></span>
+  <span class="moon-phase" id="moon-phase"></span>
+  <span>MOON TERMINAL v0.69 | NOT FINANCIAL ADVICE</span>
+</div>
+
 <script>
-// ─── Terminal engine ──────────────────────────────────────────────────────────
-const output = document.getElementById('output');
-const input  = document.getElementById('input');
-const history = [];
-let histIdx = -1;
+// ─── Coin config (CoinGecko IDs + display) ──────────────────────────────────
+const COINS = [
+  { id: 'dogecoin',       name: 'DOGECOIN',     sym: 'DOGE',  icon: '\u{1F436}', vibe: 'legendary' },
+  { id: 'shiba-inu',      name: 'SHIBA INU',    sym: 'SHIB',  icon: '\u{1F43A}', vibe: 'certified' },
+  { id: 'pepe',           name: 'PEPE',         sym: 'PEPE',  icon: '\u{1F438}', vibe: 'ascended' },
+  { id: 'bonk',           name: 'BONK',         sym: 'BONK',  icon: '\u{1F9B4}', vibe: 'unhinged' },
+  { id: 'floki',          name: 'FLOKI',        sym: 'FLOKI', icon: '\u2694\uFE0F',  vibe: 'viking' },
+  { id: 'wojak',          name: 'WOJAK',        sym: 'WOJAK', icon: '\u{1F62D}', vibe: 'feels' },
+  { id: 'gigachad-2',     name: 'GIGA CHAD',    sym: 'GIGA',  icon: '\u{1F4AA}', vibe: 'based' },
+  { id: 'turbo',          name: 'TURBO',        sym: 'TURBO', icon: '\u{1F40C}', vibe: 'zooming' },
+  { id: 'brett',          name: 'BRETT',         sym: 'BRETT', icon: '\u{1F7E6}', vibe: 'based blue' },
+  { id: 'dog-go-to-the-moon-rune', name: 'DOG', sym: 'DOG',   icon: '\u{1F415}', vibe: 'runic' },
+  { id: 'memecoin-2',     name: 'MEMECOIN',     sym: 'MEME',  icon: '\u{1F680}', vibe: 'meta' },
+  { id: 'cat-in-a-dogs-world', name: 'MEW',     sym: 'MEW',   icon: '\u{1F431}', vibe: 'purrfect' },
+];
 
-function print(text, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.textContent = text;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
+const COINGECKO_IDS = COINS.map(c => c.id).join(',');
+const API_URL = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COINGECKO_IDS}&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d`;
+
+// ─── Mutable state ──────────────────────────────────────────────────────────
+const state = COINS.map(c => ({
+  ...c,
+  change: 0,
+  change1h: 0,
+  change7d: 0,
+  currentPrice: 0,
+  mcap: 0,
+  volume: 0,
+  history: [],
+  moonScore: 50,
+  rank: 0,
+  ath: 0,
+  athChange: 0,
+  lastUpdated: null,
+}));
+
+let selectedIdx = null;
+let isLive = false;
+let lastFetch = 0;
+
+// ─── Logo ────────────────────────────────────────────────────────────────────
+const LOGO = `
+ __  __  ___   ___  _  _
+|  \\/  |/ _ \\ / _ \\| \\| |
+| |\\/| | (_) | (_) | .  |
+|_|  |_|\\___/ \\___/|_|\\_|
+ TERMINAL`;
+
+document.getElementById('logo-art').textContent = LOGO.trim();
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1) return '$' + n.toFixed(4);
+  const s = n.toFixed(10);
+  const match = s.match(/^0\.(0*)/);
+  const zeros = match ? match[1].length : 0;
+  if (zeros > 4) return `$0.0{${zeros}}${s.slice(2 + zeros, 2 + zeros + 4)}`;
+  return '$' + n.toFixed(Math.max(4, zeros + 3));
+}
+
+function fmtMcap(n) {
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function moonColor(score) {
+  if (score >= 80) return 'var(--green)';
+  if (score >= 60) return 'var(--amber)';
+  if (score >= 40) return 'var(--cyan)';
+  return 'var(--red)';
+}
+
+// ─── Render table ────────────────────────────────────────────────────────────
+const tbody = document.getElementById('coin-tbody');
+
+function renderTable() {
+  tbody.innerHTML = '';
+  state.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'coin-row' + (selectedIdx === i ? ' selected' : '');
+    tr.onclick = () => selectCoin(i);
+
+    const chClass = c.change >= 0 ? 'up' : 'down';
+    const chSign = c.change >= 0 ? '+' : '';
+    const mc = moonColor(c.moonScore);
+
+    tr.innerHTML = `
+      <td class="coin-pixel">${c.icon}</td>
+      <td><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.sym}</div></td>
+      <td class="coin-price">${fmt(c.currentPrice)}</td>
+      <td class="coin-change ${chClass}">${chSign}${c.change.toFixed(1)}%</td>
+      <td class="coin-mcap">${fmtMcap(c.mcap)}</td>
+      <td class="moon-bar-cell">
+        <div class="moon-bar-wrap">
+          <div class="moon-bar">
+            <div class="moon-bar-fill" style="width:${c.moonScore}%;background:${mc}"></div>
+          </div>
+          <span class="moon-score" style="color:${mc}">${c.moonScore}</span>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
   });
 }
 
-function printRaw(html, cls = 'line-green', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'line ' + cls;
-      el.innerHTML = html;
-      output.appendChild(el);
-      output.scrollTop = output.scrollHeight;
-      resolve();
-    }, delay);
+// ─── Coin detail ─────────────────────────────────────────────────────────────
+const PIXEL_ARTS = {
+  DOGE: `
+  .--.
+ / oo \\
+( >  < )
+ \\ -- /
+  '--'`,
+  PEPE: `
+ .---.
+/ o o \\
+|  __  |
+ \\_  _/
+  '--'`,
+  default: `
+  /\\
+ /  \\
+/ $$ \\
+------`
+};
+
+function selectCoin(i) {
+  selectedIdx = i;
+  const c = state[i];
+  const art = PIXEL_ARTS[c.sym] || PIXEL_ARTS.default;
+
+  document.getElementById('coin-art').textContent = art;
+  document.getElementById('detail-box').querySelector('.detail-title').textContent = c.icon + ' ' + c.name;
+
+  const chClass = c.change >= 0 ? 'val-up' : 'val-down';
+  const chSign = c.change >= 0 ? '+' : '';
+  const ch1h = c.change1h >= 0 ? '+' + c.change1h.toFixed(2) : c.change1h.toFixed(2);
+  const ch7d = c.change7d >= 0 ? '+' + c.change7d.toFixed(2) : c.change7d.toFixed(2);
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Symbol</span><span class="detail-val">${c.sym}</span></div>
+    <div class="detail-row"><span class="detail-label">Price</span><span class="detail-val">${fmt(c.currentPrice)}</span></div>
+    <div class="detail-row"><span class="detail-label">1h</span><span class="${c.change1h >= 0 ? 'val-up' : 'val-down'}">${ch1h}%</span></div>
+    <div class="detail-row"><span class="detail-label">24h</span><span class="${chClass}">${chSign}${c.change.toFixed(2)}%</span></div>
+    <div class="detail-row"><span class="detail-label">7d</span><span class="${c.change7d >= 0 ? 'val-up' : 'val-down'}">${ch7d}%</span></div>
+    <div class="detail-row"><span class="detail-label">MCap</span><span class="detail-val">${fmtMcap(c.mcap)}</span></div>
+    <div class="detail-row"><span class="detail-label">Volume</span><span class="detail-val">${fmtMcap(c.volume)}</span></div>
+    <div class="detail-row"><span class="detail-label">ATH</span><span class="detail-val">${fmt(c.ath)}</span></div>
+    <div class="detail-row"><span class="detail-label">From ATH</span><span class="val-down">${c.athChange.toFixed(1)}%</span></div>
+    <div class="detail-row"><span class="detail-label">Moon</span><span class="detail-val" style="color:${moonColor(c.moonScore)}">${c.moonScore}/100</span></div>
+    <div class="detail-row"><span class="detail-label">Vibe</span><span class="detail-val" style="color:var(--magenta)">${c.vibe}</span></div>
+    <div class="detail-row"><span class="detail-label">Rank</span><span class="detail-val">#${c.rank}</span></div>
+  `;
+
+  renderChart(c);
+  renderTable();
+}
+
+// ─── Mini chart ──────────────────────────────────────────────────────────────
+function renderChart(c) {
+  const chart = document.getElementById('mini-chart');
+  chart.innerHTML = '';
+  const max = Math.max(...c.history);
+  const min = Math.min(...c.history);
+  const range = max - min || 1;
+
+  c.history.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    const h = ((v - min) / range) * 52 + 8;
+    bar.style.height = h + 'px';
+    if (i > 0 && v < c.history[i - 1]) bar.classList.add('down');
+    chart.appendChild(bar);
   });
 }
 
-async function printLines(lines, cls = 'line-green', baseDelay = 0, step = 0) {
-  for (let i = 0; i < lines.length; i++) {
-    await print(lines[i], cls, baseDelay + i * step);
+// ─── Ticker ──────────────────────────────────────────────────────────────────
+function renderTicker() {
+  const ticker = document.getElementById('ticker');
+  let html = '';
+  // duplicate for seamless scroll
+  for (let rep = 0; rep < 2; rep++) {
+    state.forEach(c => {
+      const cls = c.change >= 0 ? 'tick-up' : 'tick-down';
+      const sign = c.change >= 0 ? '\u25B2' : '\u25BC';
+      html += `<span class="tick-item"><span class="tick-name">${c.sym}</span><span class="${cls}">${fmt(c.currentPrice)} ${sign}${Math.abs(c.change).toFixed(1)}%</span></span>`;
+    });
   }
+  ticker.innerHTML = html;
 }
 
-function blank(delay = 0) { return print('', 'line-green', delay); }
+// ─── Header stats ────────────────────────────────────────────────────────────
+function renderHeaderStats() {
+  const totalMcap = state.reduce((a, c) => a + c.mcap, 0);
+  const totalVol = state.reduce((a, c) => a + c.volume, 0);
+  const avgMoon = Math.round(state.reduce((a, c) => a + c.moonScore, 0) / state.length);
+  const topCoin = state.reduce((a, c) => c.moonScore > a.moonScore ? c : a);
+  const ago = lastFetch ? Math.round((Date.now() - lastFetch) / 1000) + 's ago' : '--';
 
-function echoCmd(cmd) {
-  print(`visitor@vibe:~$ ${cmd}`, 'line-dim');
+  document.getElementById('header-stats').innerHTML = `
+    <div><span class="label">TOTAL MEME MCAP </span><span class="val">${fmtMcap(totalMcap)}</span></div>
+    <div><span class="label">24H VOLUME      </span><span class="val">${fmtMcap(totalVol)}</span></div>
+    <div><span class="label">AVG MOON SCORE  </span><span class="val">${avgMoon}/100</span></div>
+    <div><span class="label">TOP VIBE        </span><span class="val">${topCoin.icon} ${topCoin.sym}</span></div>
+    <div><span class="label">LAST UPDATE     </span><span class="val">${ago}</span></div>
+  `;
 }
 
-// ─── Boot sequence ────────────────────────────────────────────────────────────
-const LOGO = [
-  '██╗   ██╗██╗██████╗ ███████╗',
-  '██║   ██║██║██╔══██╗██╔════╝',
-  '██║   ██║██║██████╔╝█████╗  ',
-  '╚██╗ ██╔╝██║██╔══██╗██╔══╝  ',
-  ' ╚████╔╝ ██║██████╔╝███████╗',
-  '  ╚═══╝  ╚═╝╚═════╝ ╚══════╝',
-  '  T E R M I N A L   v 1 . 0 ',
+// ─── Live feed ───────────────────────────────────────────────────────────────
+const ACTIONS = [
+  (c) => `<span class="feed-coin">${c.sym}</span> <span class="feed-action">price ticked ${c.change >= 0 ? 'up' : 'down'}</span>`,
+  (c) => `whale bought <span class="feed-coin">${c.sym}</span> <span class="feed-highlight">${fmtMcap(Math.random() * 1e6 + 10000)}</span>`,
+  (c) => `<span class="feed-coin">${c.sym}</span> moon score: <span class="feed-highlight">${c.moonScore}</span>`,
+  (c) => `new holder joined <span class="feed-coin">${c.sym}</span>`,
+  (c) => `<span class="feed-coin">${c.sym}</span> vibe check: <span class="feed-highlight">${c.vibe}</span>`,
+  (c) => `<span class="feed-coin">${c.sym}</span> trending on dex`,
+  (c) => `<span class="feed-coin">${c.sym}</span> liquidity ${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 5).toFixed(1)}%`,
 ];
 
-async function boot() {
-  await print('Initializing VIBE OS...', 'line-dim', 0);
-  await print('[████████████████████] 100%  OK', 'line-dim', 400);
-  await blank(600);
+const feedEl = document.getElementById('feed');
+const feedItems = [];
 
-  for (let i = 0; i < LOGO.length; i++) {
-    await print(LOGO[i], 'line-green', 700 + i * 60);
-  }
-
-  await blank(1200);
-  await print('Welcome. Type  help  to see available commands.', 'line-cyan', 1300);
-  await blank(1350);
-  input.focus();
-}
-
-// ─── Commands ─────────────────────────────────────────────────────────────────
-const COMMANDS = {};
-
-COMMANDS.help = async () => {
-  const cmds = [
-    ['help',    'show this message'],
-    ['about',   'who is this?'],
-    ['skills',  'tech stack & skills'],
-    ['projects','featured projects'],
-    ['contact', 'get in touch'],
-    ['fortune', 'random wisdom'],
-    ['matrix',  'enter the matrix'],
-    ['snake',   'play snake'],
-    ['weather', 'fake weather report'],
-    ['hack',    'look like a hacker (very important)'],
-    ['clear',   'clear the terminal'],
-    ['date',    'show current date/time'],
-    ['whoami',  'who are you?'],
-  ];
-  await blank();
-  await print('┌─ AVAILABLE COMMANDS ──────────────────────────┐', 'line-cyan');
-  for (const [cmd, desc] of cmds) {
-    await print(`│  ${cmd.padEnd(12)}  ${desc.padEnd(32)} │`, 'line-cyan');
-  }
-  await print('└───────────────────────────────────────────────┘', 'line-cyan');
-  await blank();
-};
-
-COMMANDS.about = async () => {
-  await blank();
-  const lines = [
-    '  ╔══════════════════════════════════════╗',
-    '  ║           ABOUT THE OPERATOR         ║',
-    '  ╠══════════════════════════════════════╣',
-    '  ║  NAME     : vibe.operator            ║',
-    '  ║  STATUS   : caffeine-dependent       ║',
-    '  ║  LOCATION : somewhere on the grid    ║',
-    '  ║  MISSION  : build cool things        ║',
-    '  ║  WEAKNESS : shiny new frameworks     ║',
-    '  ╚══════════════════════════════════════╝',
-  ];
-  await printLines(lines, 'line-cyan', 0, 40);
-  await blank();
-  await print('  A developer who believes good software should feel alive.', 'line-green');
-  await print('  This terminal is proof of concept #1.', 'line-green');
-  await blank();
-};
-
-COMMANDS.skills = async () => {
-  await blank();
-  const skills = [
-    { label: 'JavaScript / TypeScript', pct: 92, color: 'line-amber' },
-    { label: 'Python                  ', pct: 85, color: 'line-cyan' },
-    { label: 'Rust                    ', pct: 60, color: 'line-green' },
-    { label: 'CSS / Design            ', pct: 78, color: 'line-magenta' },
-    { label: 'Systems / Infra         ', pct: 70, color: 'line-amber' },
-    { label: 'Vibes                   ', pct: 100, color: 'line-green' },
-  ];
-
-  await print('  SKILL MATRIX:', 'line-cyan');
-  await blank();
-
-  for (const s of skills) {
-    const bar = '█'.repeat(Math.floor(s.pct / 5)) + '░'.repeat(20 - Math.floor(s.pct / 5));
-    await print(`  ${s.label}  [${bar}] ${s.pct}%`, s.color);
-  }
-  await blank();
-};
-
-COMMANDS.projects = async () => {
-  await blank();
-  const projects = [
-    { name: 'VIBE TERMINAL', tech: 'HTML/CSS/JS', desc: 'Retro terminal portfolio. You\'re in it.' },
-    { name: 'GRID ENGINE',   tech: 'Rust/WASM',   desc: 'Procedural world gen in the browser.' },
-    { name: 'SIGNAL BOT',    tech: 'Python',       desc: 'Discord bot that summarizes your server.' },
-    { name: 'NEON DB',       tech: 'TypeScript',   desc: 'Tiny in-memory document store.' },
-    { name: '???',           tech: '???',          desc: 'Something is cooking. Stay tuned.' },
-  ];
-
-  for (const p of projects) {
-    await print(`┌─[ ${p.name} ]`, 'line-magenta');
-    await print(`│  tech : ${p.tech}`, 'line-dim');
-    await print(`│  desc : ${p.desc}`, 'line-green');
-    await print('└─────────────────────────────────────────────', 'line-magenta');
-    await blank();
-  }
-};
-
-COMMANDS.contact = async () => {
-  await blank();
-  await print('  ┌─ CONTACT ────────────────────────────────┐', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  │  github   : github.com/tpogg/vibe        │', 'line-amber');
-  await print('  │  email    : hello@vibe.terminal          │', 'line-amber');
-  await print('  │  matrix   : @operator:matrix.org         │', 'line-amber');
-  await print('  │  vibe     : immaculate                   │', 'line-amber');
-  await print('  │                                          │', 'line-amber');
-  await print('  └──────────────────────────────────────────┘', 'line-amber');
-  await blank();
-};
-
-const FORTUNES = [
-  'The best code is the code you never have to write.',
-  'It works on my machine. Ship the machine.',
-  'Any fool can write code a computer understands. Write code humans understand.',
-  'Debugging is like being a detective in a crime movie where you are also the murderer.',
-  'The first 90% takes 90% of the time. The last 10% takes the other 90%.',
-  'Always code as if the person maintaining your code is a violent psychopath who knows where you live.',
-  'Premature optimization is the root of all evil. But so is premature abstraction.',
-  'There are 2 hard problems in computer science: caching, naming things, and off-by-one errors.',
-  'A bug in production is worth two in development.',
-  'The cloud is just someone else\'s computer — and it\'s on fire.',
-  'Ship fast, but not so fast you forget to test.',
-  'The best feature is the one your users actually use.',
-  '"Works for me" is not a valid deployment strategy.',
-  'Every system eventually becomes a distributed system.',
-  'You ain\'t gonna need it — until you do.',
-  'Write tests first, regret later — but less.',
-];
-
-COMMANDS.fortune = async () => {
-  const f = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-  await blank();
-  await print('  ╔══ FORTUNE ═══════════════════════════════════════╗', 'line-amber');
-  const words = f.split(' ');
-  let line = '  ║  ';
-  for (const w of words) {
-    if ((line + w).length > 54) {
-      await print(line.padEnd(55) + '║', 'line-amber');
-      line = '  ║  ' + w + ' ';
-    } else {
-      line += w + ' ';
-    }
-  }
-  if (line.trim() !== '║') {
-    await print(line.padEnd(55) + '║', 'line-amber');
-  }
-  await print('  ╚══════════════════════════════════════════════════╝', 'line-amber');
-  await blank();
-};
-
-COMMANDS.date = async () => {
+function addFeedItem(customMsg) {
+  const c = state[Math.floor(Math.random() * state.length)];
   const now = new Date();
-  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' };
-  await blank();
-  await print('  ' + now.toLocaleString('en-US', opts), 'line-cyan');
-  await print('  UNIX: ' + Math.floor(now.getTime()/1000), 'line-dim');
-  await blank();
-};
+  const time = now.toTimeString().slice(0, 8);
 
-COMMANDS.whoami = async () => {
-  await blank();
-  await print('  visitor', 'line-green');
-  await print('  groups: users, curious, potentially_dangerous', 'line-dim');
-  await blank();
-};
-
-COMMANDS.weather = async () => {
-  const conditions = ['NEON RAIN', 'DIGITAL FOG', 'BINARY SUNSHINE', 'CYBER OVERCAST', 'GLITCH STORM'];
-  const cond = conditions[Math.floor(Math.random() * conditions.length)];
-  const temp = (Math.random() * 30 + 10).toFixed(1);
-  const humidity = Math.floor(Math.random() * 60 + 30);
-  const wind = Math.floor(Math.random() * 50 + 5);
-
-  await blank();
-  await print('  WEATHER REPORT :: THE GRID', 'line-cyan');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print(`  Condition  : ${cond}`, 'line-amber');
-  await print(`  Temp       : ${temp}°C`, 'line-green');
-  await print(`  Humidity   : ${humidity}%`, 'line-green');
-  await print(`  Wind       : ${wind} km/h`, 'line-green');
-  await print('  ─────────────────────────────────', 'line-dim');
-  await print('  forecast   : 100% chance of staying inside', 'line-dim');
-  await blank();
-};
-
-COMMANDS.hack = async () => {
-  await blank();
-  await print('  Initiating hack sequence...', 'line-red');
-  const fakeLines = [
-    'Scanning network interfaces...',
-    'Bypassing firewall... ████████ DONE',
-    'Injecting payload into mainframe...',
-    'Decrypting AES-256 keys... just kidding',
-    'Accessing NSA backdoor... ERROR: backdoor too obvious',
-    'Pivoting through 7 proxies...',
-    'Rooting target system...',
-    'Uploading "totally_not_malware.exe"...',
-    'Covering tracks... rm -rf /var/log/*',
-    '> ACCESS GRANTED',
-    '',
-    '  just kidding. this is art.',
-  ];
-  for (let i = 0; i < fakeLines.length; i++) {
-    await print('  ' + fakeLines[i], i === fakeLines.length - 3 ? 'line-red' : i === fakeLines.length -1 ? 'line-dim' : 'line-green', i * 120);
-  }
-  await blank(fakeLines.length * 120 + 200);
-};
-
-COMMANDS.clear = async () => {
-  output.innerHTML = '';
-};
-
-// ─── Matrix ───────────────────────────────────────────────────────────────────
-COMMANDS.matrix = () => {
-  const canvas = document.getElementById('matrix-canvas');
-  const matExit = document.getElementById('matrix-exit');
-  canvas.style.display = 'block';
-  matExit.style.display = 'block';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
-
-  const fontSize = 14;
-  const cols = Math.floor(canvas.width / fontSize);
-  const drops = Array(cols).fill(1);
-  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&';
-
-  let animId;
-  function draw() {
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00ff41';
-    ctx.font = fontSize + 'px monospace';
-    for (let i = 0; i < drops.length; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
-    animId = requestAnimationFrame(draw);
-  }
-  animId = requestAnimationFrame(draw);
-
-  function exitMatrix(e) {
-    if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q') {
-      cancelAnimationFrame(animId);
-      canvas.style.display = 'none';
-      matExit.style.display = 'none';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      document.removeEventListener('keydown', exitMatrix);
-      input.focus();
-      print('  [ exited matrix ]', 'line-dim');
-    }
-  }
-  document.addEventListener('keydown', exitMatrix);
-  print('  [ matrix mode — press ESC or Q to exit ]', 'line-dim');
-};
-
-// ─── Snake ────────────────────────────────────────────────────────────────────
-COMMANDS.snake = () => {
-  const overlay = document.getElementById('snake-overlay');
-  const canvas  = document.getElementById('snake-canvas');
-  const scoreEl = document.getElementById('snake-score-display');
-  const msgEl   = document.getElementById('snake-msg');
-  overlay.style.display = 'flex';
-
-  const CELL = 20;
-  const COLS = 20;
-  const ROWS = 20;
-  const ctx  = canvas.getContext('2d');
-
-  let snake, dir, nextDir, food, score, highScore = 0, gameLoop, alive;
-
-  function reset() {
-    snake   = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
-    dir     = {x:1,y:0};
-    nextDir = {x:1,y:0};
-    food    = randomFood();
-    score   = 0;
-    alive   = true;
-    msgEl.textContent = '';
-    updateScore();
+  let msg;
+  if (customMsg) {
+    msg = `<span class="feed-action">${customMsg}</span>`;
+  } else {
+    const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+    msg = action(c);
   }
 
-  function randomFood() {
-    let f;
-    do {
-      f = {x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS)};
-    } while (snake.some(s => s.x===f.x && s.y===f.y));
-    return f;
+  feedItems.unshift(`<div class="feed-item"><span class="feed-time">${time}</span> ${msg}</div>`);
+  if (feedItems.length > 8) feedItems.pop();
+  feedEl.innerHTML = feedItems.join('');
+}
+
+// ─── Moon phase ──────────────────────────────────────────────────────────────
+function getMoonPhase() {
+  const phases = ['\u{1F311} NEW', '\u{1F312} WAXING', '\u{1F313} QUARTER', '\u{1F314} GIBBOUS', '\u{1F315} FULL', '\u{1F316} WANING', '\u{1F317} QUARTER', '\u{1F318} CRESCENT'];
+  const day = Math.floor(Date.now() / 86400000) % 8;
+  return phases[day];
+}
+document.getElementById('moon-phase').textContent = getMoonPhase();
+
+// ─── Moon Score Algorithm ────────────────────────────────────────────────────
+// Computed from real metrics: 24h change, 7d momentum, volume/mcap ratio, ATH distance
+function computeMoonScore(c) {
+  let score = 50;
+  // 24h momentum (up to +/- 20 pts)
+  score += Math.max(-20, Math.min(20, c.change * 1.5));
+  // 7d trend (up to +/- 15 pts)
+  score += Math.max(-15, Math.min(15, c.change7d * 0.5));
+  // volume/mcap ratio — high volume = hype (up to +15 pts)
+  if (c.mcap > 0) {
+    const vmRatio = c.volume / c.mcap;
+    score += Math.min(15, vmRatio * 30);
   }
+  // ATH distance — closer to ATH = more moon (up to +10 pts)
+  if (c.athChange > -20) score += 10;
+  else if (c.athChange > -50) score += 5;
+  else if (c.athChange < -90) score -= 10;
+  return Math.max(1, Math.min(99, Math.round(score)));
+}
 
-  function updateScore() {
-    scoreEl.textContent = `SCORE: ${score} | HIGH SCORE: ${highScore}`;
-  }
+// ─── CoinGecko Fetch ────────────────────────────────────────────────────────
+async function fetchLiveData() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-  function draw() {
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // grid
-    ctx.strokeStyle = '#001a05';
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        ctx.strokeRect(c*CELL, r*CELL, CELL, CELL);
+    data.forEach(coin => {
+      const idx = state.findIndex(s => s.id === coin.id);
+      if (idx === -1) return;
+      const s = state[idx];
+      s.currentPrice = coin.current_price || 0;
+      s.change = coin.price_change_percentage_24h || 0;
+      s.change1h = coin.price_change_percentage_1h_in_currency || 0;
+      s.change7d = coin.price_change_percentage_7d_in_currency || 0;
+      s.mcap = coin.market_cap || 0;
+      s.volume = coin.total_volume || 0;
+      s.rank = coin.market_cap_rank || 0;
+      s.ath = coin.ath || 0;
+      s.athChange = coin.ath_change_percentage || 0;
+      s.lastUpdated = coin.last_updated;
+      // Use 7-day sparkline for history
+      if (coin.sparkline_in_7d && coin.sparkline_in_7d.price) {
+        s.history = coin.sparkline_in_7d.price;
       }
-    }
+      s.moonScore = computeMoonScore(s);
+    });
 
-    // food
-    ctx.fillStyle = '#ff3c3c';
-    ctx.fillRect(food.x*CELL+2, food.y*CELL+2, CELL-4, CELL-4);
+    isLive = true;
+    lastFetch = Date.now();
+    document.getElementById('data-source').textContent = 'LIVE DATA (CoinGecko)';
+    document.getElementById('data-source').style.color = 'var(--green)';
 
-    // snake
-    for (let i = 0; i < snake.length; i++) {
-      const s = snake[i];
-      ctx.fillStyle = i===0 ? '#00ff41' : '#00aa2a';
-      ctx.fillRect(s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2);
-    }
-  }
+    renderAll();
+    addFeedItem(`API update: ${data.length} coins refreshed`);
+  } catch (err) {
+    console.warn('CoinGecko fetch failed:', err.message);
+    document.getElementById('data-source').textContent = 'API ERROR — retrying...';
+    document.getElementById('data-source').style.color = 'var(--red)';
 
-  function step() {
-    dir = nextDir;
-    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-        snake.some(s => s.x===head.x && s.y===head.y)) {
-      alive = false;
-      if (score > highScore) highScore = score;
-      updateScore();
-      clearInterval(gameLoop);
-      msgEl.textContent = `GAME OVER — SCORE: ${score}  [ press R to restart ]`;
-      return;
-    }
-
-    snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score += 10;
-      updateScore();
-      food = randomFood();
-    } else {
-      snake.pop();
-    }
-    draw();
-  }
-
-  function onKey(e) {
-    const map = {
-      ArrowUp:'U', ArrowDown:'D', ArrowLeft:'L', ArrowRight:'R',
-      w:'U', s:'D', a:'L', d:'R',
-      W:'U', S:'D', A:'L', D:'R',
-    };
-    const d = map[e.key];
-    if (d) {
-      e.preventDefault();
-      const dirs = {U:{x:0,y:-1},D:{x:0,y:1},L:{x:-1,y:0},R:{x:1,y:0}};
-      const nd = dirs[d];
-      if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
-    }
-    if (e.key === 'r' || e.key === 'R') {
-      clearInterval(gameLoop);
-      reset();
-      draw();
-      gameLoop = setInterval(step, 120);
-    }
-    if (e.key === 'Escape') {
-      clearInterval(gameLoop);
-      document.removeEventListener('keydown', onKey);
-      overlay.style.display = 'none';
-      input.focus();
-      print('  [ snake exited ]', 'line-dim');
+    // If first load failed, seed with fallback data so the UI isn't empty
+    if (!isLive && state[0].currentPrice === 0) {
+      seedFallback();
     }
   }
+}
 
-  document.addEventListener('keydown', onKey);
-  reset();
-  draw();
-  gameLoop = setInterval(step, 120);
-};
+// ─── Fallback data if API is blocked ────────────────────────────────────────
+function seedFallback() {
+  const fallback = {
+    'dogecoin': { p: 0.154, mc: 20.1e9 },
+    'shiba-inu': { p: 0.0000234, mc: 13.8e9 },
+    'pepe': { p: 0.0000089, mc: 3.7e9 },
+    'bonk': { p: 0.0000312, mc: 1.9e9 },
+    'floki': { p: 0.000187, mc: 1.6e9 },
+    'wojak': { p: 0.000042, mc: 420e6 },
+    'gigachad-2': { p: 0.00420, mc: 210e6 },
+    'turbo': { p: 0.00892, mc: 560e6 },
+    'brett': { p: 0.095, mc: 940e6 },
+    'dog-go-to-the-moon-rune': { p: 0.0072, mc: 720e6 },
+    'memecoin-2': { p: 0.0032, mc: 320e6 },
+    'cat-in-a-dogs-world': { p: 0.0038, mc: 380e6 },
+  };
+  state.forEach(s => {
+    const fb = fallback[s.id];
+    if (!fb) return;
+    s.currentPrice = fb.p;
+    s.mcap = fb.mc;
+    s.change = (Math.random() - 0.4) * 20;
+    s.change1h = (Math.random() - 0.5) * 5;
+    s.change7d = (Math.random() - 0.4) * 30;
+    s.volume = fb.mc * (0.05 + Math.random() * 0.15);
+    s.ath = fb.p * (2 + Math.random() * 10);
+    s.athChange = -((1 - fb.p / s.ath) * 100);
+    s.history = Array.from({length: 20}, () => fb.p * (0.8 + Math.random() * 0.4));
+    s.moonScore = computeMoonScore(s);
+  });
+  document.getElementById('data-source').textContent = 'OFFLINE MODE (cached data)';
+  document.getElementById('data-source').style.color = 'var(--amber)';
+  renderAll();
+}
 
-// ─── Input handling ───────────────────────────────────────────────────────────
-input.addEventListener('keydown', async (e) => {
-  if (e.key === 'Enter') {
-    const cmd = input.value.trim().toLowerCase();
-    input.value = '';
-    histIdx = -1;
+// ─── Render all ─────────────────────────────────────────────────────────────
+function renderAll() {
+  renderTable();
+  renderTicker();
+  renderHeaderStats();
+  if (selectedIdx !== null) selectCoin(selectedIdx);
+}
 
-    echoCmd(cmd);
+// ─── Init ────────────────────────────────────────────────────────────────────
+// Initial fetch
+fetchLiveData();
 
-    if (!cmd) return;
-    history.unshift(cmd);
+// Re-fetch from API every 60 seconds (CoinGecko free tier: ~30 calls/min)
+setInterval(fetchLiveData, 60000);
 
-    if (COMMANDS[cmd]) {
-      await COMMANDS[cmd]();
-    } else {
-      await blank();
-      await print(`  command not found: ${cmd}`, 'line-red');
-      await print('  type  help  for available commands', 'line-dim');
-      await blank();
-    }
-  }
-
-  if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (histIdx < history.length - 1) histIdx++;
-    input.value = history[histIdx] || '';
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (histIdx > 0) histIdx--;
-    else { histIdx = -1; input.value = ''; }
-    input.value = histIdx >= 0 ? history[histIdx] : '';
-  }
-
-  if (e.key === 'l' && e.ctrlKey) {
-    e.preventDefault();
-    await COMMANDS.clear();
-  }
-});
-
-// keep focus on input
-document.addEventListener('click', () => {
-  if (document.getElementById('snake-overlay').style.display === 'flex') return;
-  if (document.getElementById('matrix-canvas').style.display === 'block') return;
-  input.focus();
-});
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-boot();
+// Feed items
+addFeedItem();
+addFeedItem();
+addFeedItem();
+setInterval(addFeedItem, 4000);
 </script>
 </body>
 </html>
