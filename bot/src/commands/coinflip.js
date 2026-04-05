@@ -10,13 +10,16 @@ module.exports = {
   async execute(interaction) {
     const result = Math.random() < 0.5 ? 'HEADS' : 'TAILS';
     const embed = new EmbedBuilder()
-      .setColor(result === 'HEADS' ? colors.primary : colors.secondary)
+      .setColor(colors.primary)
+      .setTitle('◉ COINFLIP')
       .setDescription([
         '```ansi',
-        `\x1b[32m> Flipping quantum coin...\x1b[0m`,
-        `\x1b[1;33m> Result: ${result}\x1b[0m`,
+        `\x1b[32m> flip --quantum\x1b[0m`,
+        `\x1b[32m> Result: ${result}\x1b[0m`,
         '```',
-      ].join('\n'));
+      ].join('\n'))
+      .setFooter({ text: brand.footer })
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   },

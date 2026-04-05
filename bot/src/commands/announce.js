@@ -34,7 +34,7 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(colorMap[colorName])
-      .setTitle(`📢  ${title}`)
+      .setTitle(`◉ ${title.toUpperCase()}`)
       .setDescription(message)
       .setFooter({ text: `Announced by ${interaction.user.username} · ${brand.footer}` })
       .setTimestamp();

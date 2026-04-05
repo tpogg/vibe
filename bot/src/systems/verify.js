@@ -41,12 +41,15 @@ async function handleButton(interaction) {
     await interaction.reply({
       embeds: [new EmbedBuilder()
         .setColor(colors.danger)
+        .setTitle('◉ ACCESS DENIED')
         .setDescription([
-          '```ansi', '\x1b[31m> ACCESS DENIED\x1b[0m', '```',
+          '```ansi', '\x1b[32m> verify --check\x1b[0m', '```',
           `Your account is **${Math.floor(ageDays)}** days old.`,
           `Minimum required: **${MIN_ACCOUNT_AGE_DAYS}** days.`,
           '', 'Come back later.',
         ].join('\n'))
+        .setFooter({ text: brand.footer })
+        .setTimestamp()
       ],
       ephemeral: true,
     });
@@ -67,7 +70,10 @@ async function handleButton(interaction) {
     await interaction.reply({
       embeds: [new EmbedBuilder()
         .setColor(colors.danger)
-        .setDescription('```ansi\n\x1b[31m> TOO MANY ATTEMPTS\x1b[0m\n```\nYou have been rate-limited. Try again later.')
+        .setTitle('◉ RATE LIMITED')
+        .setDescription('```ansi\n\x1b[32m> verify --check\x1b[0m\n```\nToo many attempts. You have been rate-limited. Try again later.')
+        .setFooter({ text: brand.footer })
+        .setTimestamp()
       ],
       ephemeral: true,
     });
@@ -109,7 +115,10 @@ async function handleModal(interaction) {
     await interaction.reply({
       embeds: [new EmbedBuilder()
         .setColor(colors.warning)
-        .setDescription('```ansi\n\x1b[33m> CODE EXPIRED\x1b[0m\n```\nClick the verify button to get a new code.')
+        .setTitle('◉ CODE EXPIRED')
+        .setDescription('```ansi\n\x1b[32m> verify --validate\x1b[0m\n```\nClick the verify button to get a new code.')
+        .setFooter({ text: brand.footer })
+        .setTimestamp()
       ],
       ephemeral: true,
     });
@@ -129,12 +138,15 @@ async function handleModal(interaction) {
     await interaction.reply({
       embeds: [new EmbedBuilder()
         .setColor(colors.danger)
+        .setTitle('◉ INCORRECT CODE')
         .setDescription([
-          '```ansi', '\x1b[31m> INCORRECT CODE\x1b[0m', '```',
+          '```ansi', '\x1b[32m> verify --validate\x1b[0m', '```',
           remaining > 0
             ? `**${remaining}** attempt(s) remaining. Click verify to try again.`
             : 'Too many failures. You are temporarily locked out.',
         ].join('\n'))
+        .setFooter({ text: brand.footer })
+        .setTimestamp()
       ],
       ephemeral: true,
     });
@@ -158,11 +170,14 @@ async function handleModal(interaction) {
   await interaction.reply({
     embeds: [new EmbedBuilder()
       .setColor(colors.primary)
+      .setTitle('◉ ACCESS GRANTED')
       .setDescription([
-        '```ansi', '\x1b[32m> ACCESS GRANTED\x1b[0m', '```',
+        '```ansi', '\x1b[32m> verify --success\x1b[0m', '```',
         `Welcome to the grid, **${interaction.user.username}**.`,
         'You now have full access to the server.',
       ].join('\n'))
+      .setFooter({ text: brand.footer })
+      .setTimestamp()
     ],
     ephemeral: true,
   });

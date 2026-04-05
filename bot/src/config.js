@@ -70,9 +70,9 @@ module.exports = {
       {
         name: '〔 CONNECT 〕',
         channels: [
-          { name: 'Lounge', type: 'voice' },
-          { name: 'Co-work', type: 'voice' },
-          { name: 'Stage', type: 'stage' },
+          { name: '🎧│lounge', type: 'voice' },
+          { name: '💻│co-work', type: 'voice' },
+          { name: '🎙│stage', type: 'stage' },
         ],
       },
       {

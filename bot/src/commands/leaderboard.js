@@ -13,7 +13,7 @@ module.exports = {
 
     if (lb.length === 0) {
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(colors.dim).setDescription('No XP data yet. Start chatting!')],
+        embeds: [new EmbedBuilder().setColor(colors.primary).setTitle('◉ LEADERBOARD').setDescription('```ansi\n\x1b[32m> leaderboard --top 10\n> No data found.\x1b[0m\n```').setFooter({ text: brand.footer }).setTimestamp()],
         ephemeral: true,
       });
     }
@@ -25,11 +25,11 @@ module.exports = {
     });
 
     const embed = new EmbedBuilder()
-      .setColor(colors.warning)
-      .setTitle(`${brand.emoji.crown} Leaderboard`)
+      .setColor(colors.primary)
+      .setTitle('◉ LEADERBOARD')
       .setDescription([
         '```ansi',
-        '\x1b[33m> LEADERBOARD.exe\x1b[0m',
+        '\x1b[32m> leaderboard --top 10\x1b[0m',
         '```',
         '',
         ...lines,

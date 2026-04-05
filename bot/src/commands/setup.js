@@ -24,7 +24,7 @@ module.exports = {
 
     try {
       // ─── Step 1: NUKE ──────────────────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', '```ansi\n\x1b[31m> rm -rf ./channels/*\x1b[0m\n```')] });
+      await interaction.editReply({ embeds: [vibeEmbed('SETUP', '```ansi\n\x1b[31m> rm -rf ./channels/*\x1b[0m\n```')] });
 
       const existing = guild.channels.cache.filter(c => c.id !== interaction.channel.id);
       let deleted = 0;
@@ -34,7 +34,7 @@ module.exports = {
       log.push(`✓ Purged ${deleted} channels`);
 
       // ─── Step 2: ROLES ─────────────────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Creating roles...\x1b[0m\n\`\`\``)] });
+      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Creating roles...\x1b[0m\n\`\`\``)] });
 
       const createdRoles = {};
       for (const def of [...server.roles].reverse()) {
@@ -55,7 +55,7 @@ module.exports = {
       log.push(`✓ ${Object.keys(createdRoles).length} roles`);
 
       // ─── Step 3: VERIFICATION CHANNEL ──────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> mkdir -p channels/*\x1b[0m\n\`\`\``)] });
+      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> mkdir -p channels/*\x1b[0m\n\`\`\``)] });
 
       const modRole = createdRoles['Mod'];
       const viberRole = createdRoles['Viber'];
@@ -96,6 +96,8 @@ module.exports = {
           }
         }
 
+        const isMainCategory = cat.name.includes('MAIN');
+
         const category = await guild.channels.create({
           name: cat.name,
           type: ChannelType.GuildCategory,
@@ -111,6 +113,13 @@ module.exports = {
             chPerms.push(
               { id: guild.id, deny: [PermissionFlagsBits.SendMessages] },
               { id: guild.members.me.id, allow: [PermissionFlagsBits.SendMessages] },
+            );
+          }
+
+          // General chat: visible to everyone (even unverified) as the only public channel
+          if (isMainCategory && ch.name.includes('general')) {
+            chPerms.push(
+              { id: guild.id, allow: [PermissionFlagsBits.ViewChannel] },
             );
           }
 
@@ -150,14 +159,14 @@ module.exports = {
       }
 
       // ─── Step 5: POST CONTENT ──────────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> echo "content" > channels/*\x1b[0m\n\`\`\``)] });
+      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> echo "content" > channels/*\x1b[0m\n\`\`\``)] });
 
       // Rules
       const rulesCh = guild.channels.cache.find(c => c.name.includes('rules') && c.type === ChannelType.GuildText);
       if (rulesCh) {
         await rulesCh.send({ embeds: [new EmbedBuilder()
           .setColor(colors.primary)
-          .setTitle('RULES')
+          .setTitle('◉ RULES')
           .setDescription([
             '```ansi', '\x1b[32m> cat /etc/rules.conf\x1b[0m', '```', '',
             '`01` Respect everyone. Zero tolerance.',
@@ -188,8 +197,8 @@ module.exports = {
             .setStyle(styles[i]));
         });
         await rolesCh.send({
-          embeds: [new EmbedBuilder().setColor(colors.secondary).setTitle('COLOR SELECT')
-            .setDescription('```ansi\n\x1b[36m> ./color_picker.sh\x1b[0m\n```\nTap to add. Tap again to remove.')],
+          embeds: [new EmbedBuilder().setColor(colors.primary).setTitle('◉ COLOR SELECT')
+            .setDescription('```ansi\n\x1b[32m> color --picker\x1b[0m\n```\nTap to add. Tap again to remove.')],
           components: [row],
         });
         log.push('✓ Role picker');
@@ -199,8 +208,8 @@ module.exports = {
       const botCh = guild.channels.cache.find(c => c.name.includes('bot-cmds') && c.type === ChannelType.GuildText);
       if (botCh) {
         await botCh.send({
-          embeds: [new EmbedBuilder().setColor(colors.accent).setTitle('SUPPORT')
-            .setDescription('```ansi\n\x1b[35m> ./ticket_system.sh\x1b[0m\n```\nOpen a private ticket with staff.')],
+          embeds: [new EmbedBuilder().setColor(colors.primary).setTitle('◉ SUPPORT')
+            .setDescription('```ansi\n\x1b[32m> ticket --open\x1b[0m\n```\nOpen a private ticket with staff.')],
           components: [new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_create').setLabel('Open Ticket').setStyle(ButtonStyle.Primary).setEmoji('🎫')
           )],
@@ -210,10 +219,10 @@ module.exports = {
 
       // Feed channel intros
       const feedIntros = [
-        { match: 'news', title: '📰 NEWS FEED', desc: 'Live headlines posted every 30 minutes.\nPowered by public RSS feeds.', color: colors.secondary },
-        { match: 'crypto', title: '₿ CRYPTO TRACKER', desc: 'Top coin prices posted every 30 minutes.\nData from CoinGecko.', color: colors.warning },
-        { match: 'stocks', title: '📈 MARKET FEED', desc: 'Market movers & trending tickers.\nUpdated periodically.', color: colors.primary },
-        { match: 'ai-drops', title: '🧠 AI DROPS', desc: 'Latest AI news, model releases, and tools.\nStay ahead of the curve.', color: colors.accent },
+        { match: 'news', title: '◉ NEWS FEED', desc: 'Live headlines posted every 30 minutes.\nPowered by public RSS feeds.', color: colors.primary },
+        { match: 'crypto', title: '◉ CRYPTO TRACKER', desc: 'Top coin prices posted every 30 minutes.\nData from CoinGecko.', color: colors.primary },
+        { match: 'stocks', title: '◉ MARKET FEED', desc: 'Market movers & trending tickers.\nUpdated periodically.', color: colors.primary },
+        { match: 'ai-drops', title: '◉ AI DROPS', desc: 'Latest AI news, model releases, and tools.\nStay ahead of the curve.', color: colors.primary },
       ];
       for (const fi of feedIntros) {
         const ch = guild.channels.cache.find(c => c.name.includes(fi.match) && c.type === ChannelType.GuildText);
@@ -222,7 +231,7 @@ module.exports = {
             .setColor(fi.color)
             .setTitle(fi.title)
             .setDescription(`\`\`\`ansi\n\x1b[32m> feed --init ${fi.match}\x1b[0m\n\`\`\`\n${fi.desc}`)
-            .setFooter({ text: 'Auto-updating • Read-only channel' })
+            .setFooter({ text: `Auto-updating · ${brand.footer}` })
           ] });
         }
       }
@@ -233,7 +242,7 @@ module.exports = {
         await verifyCh.send({
           embeds: [new EmbedBuilder()
             .setColor(colors.primary)
-            .setTitle('🔐 VERIFICATION')
+            .setTitle('◉ VERIFICATION')
             .setDescription([
               '```ansi',
               '\x1b[32m> verify.sh — identity check required\x1b[0m',
@@ -263,7 +272,7 @@ module.exports = {
       }
 
       // ─── Step 8: AutoMod v2 Rules ─────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> automod --configure\x1b[0m\n\`\`\``)] });
+      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> automod --configure\x1b[0m\n\`\`\``)] });
 
       // Delete existing automod rules to avoid duplicates
       try {
@@ -347,7 +356,7 @@ module.exports = {
 
       await target.send({ embeds: [new EmbedBuilder()
         .setColor(colors.primary)
-        .setTitle('✓ SERVER ONLINE')
+        .setTitle('◉ SERVER ONLINE')
         .setDescription([
           '```ansi',
           '\x1b[32m' + log.join('\n') + '\x1b[0m',
@@ -371,7 +380,7 @@ module.exports = {
     } catch (err) {
       console.error('[SETUP ERROR]', err);
       await interaction.editReply({
-        embeds: [vibeEmbed('⚠ ERROR', `\`\`\`ansi\n\x1b[31m${err.message}\x1b[0m\n\`\`\`\n\n${log.map(l => `▸ ${l}`).join('\n')}`)],
+        embeds: [vibeEmbed('ERROR', `\`\`\`ansi\n\x1b[31m${err.message}\x1b[0m\n\`\`\`\n\n${log.map(l => `▸ ${l}`).join('\n')}`)],
       }).catch(() => {});
     }
   },

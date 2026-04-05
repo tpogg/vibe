@@ -30,10 +30,10 @@ module.exports = {
       });
 
       const embed = new EmbedBuilder()
-        .setColor(colors.secondary)
-        .setTitle('📰 NEWS')
+        .setColor(colors.primary)
+        .setTitle('◉ NEWS')
         .setDescription([
-          '```ansi', '\x1b[36m> news --latest\x1b[0m', '```', '',
+          '```ansi', '\x1b[32m> news --latest\x1b[0m', '```', '',
           ...lines,
         ].join('\n'))
         .setFooter({ text: `Hacker News · ${brand.footer}` })

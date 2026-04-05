@@ -85,12 +85,11 @@ async function createTicketChannel(interaction, reason) {
   createTicketDb(guild.id, channel.id, user.id);
 
   const embed = new EmbedBuilder()
-    .setColor(colors.accent)
-    .setTitle(`${brand.emoji.ticket} Ticket #${ticketNum}`)
+    .setColor(colors.primary)
+    .setTitle(`◉ TICKET #${ticketNum}`)
     .setDescription([
       '```ansi',
-      '\x1b[35m> TICKET_SYSTEM.exe\x1b[0m',
-      '\x1b[35m> New support ticket opened\x1b[0m',
+      '\x1b[32m> ticket --open\x1b[0m',
       '```',
       '',
       `**Opened by:** ${user}`,
@@ -117,13 +116,15 @@ async function closeTicketChannel(interaction) {
   const channel = interaction.channel;
 
   const embed = new EmbedBuilder()
-    .setColor(colors.danger)
+    .setColor(colors.primary)
+    .setTitle('◉ TICKET CLOSED')
     .setDescription([
       '```ansi',
-      '\x1b[31m> Ticket closed.\x1b[0m',
+      '\x1b[32m> ticket --close\x1b[0m',
       '```',
       `Closed by ${interaction.user}. This channel will be deleted in 10 seconds.`,
     ].join('\n'))
+    .setFooter({ text: brand.footer })
     .setTimestamp();
 
   await interaction.reply({ embeds: [embed] });

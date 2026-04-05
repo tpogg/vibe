@@ -32,10 +32,10 @@ module.exports = {
       });
 
       const embed = new EmbedBuilder()
-        .setColor(colors.warning)
-        .setTitle('₿ CRYPTO')
+        .setColor(colors.primary)
+        .setTitle('◉ CRYPTO')
         .setDescription([
-          '```ansi', '\x1b[33m> crypto --prices\x1b[0m', '```', '',
+          '```ansi', '\x1b[32m> crypto --prices\x1b[0m', '```', '',
           ...lines,
         ].join('\n'))
         .setFooter({ text: `CoinGecko · ${brand.footer}` })

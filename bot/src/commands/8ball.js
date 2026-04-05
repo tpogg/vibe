@@ -29,14 +29,12 @@ module.exports = {
   async execute(interaction) {
     const question = interaction.options.getString('question');
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
-    const color = answer.type === 'positive' ? colors.primary : answer.type === 'negative' ? colors.danger : colors.warning;
-
     const embed = new EmbedBuilder()
-      .setColor(color)
-      .setTitle('🔮 THE ORACLE')
+      .setColor(colors.primary)
+      .setTitle('◉ ORACLE')
       .setDescription([
         '```ansi',
-        `\x1b[36m> Q: ${question}\x1b[0m`,
+        `\x1b[32m> oracle --ask "${question}"\x1b[0m`,
         '```',
         '',
         `**${answer.text}**`,

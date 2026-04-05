@@ -30,7 +30,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(colors.primary)
-        .setTitle('📈 TRENDING')
+        .setTitle('◉ TRENDING')
         .setDescription([
           '```ansi', '\x1b[32m> market --trending\x1b[0m', '```', '',
           ...lines,

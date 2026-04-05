@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { colors } = require('../config');
+const { colors, brand } = require('../config');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -22,14 +22,17 @@ module.exports = {
     const total = rolls.reduce((a, b) => a + b, 0);
 
     const embed = new EmbedBuilder()
-      .setColor(colors.secondary)
+      .setColor(colors.primary)
+      .setTitle('◉ ROLL')
       .setDescription([
         '```ansi',
-        `\x1b[36m> Rolling ${count}d${sides}...\x1b[0m`,
-        `\x1b[1;33m> Results: [${rolls.join(', ')}]\x1b[0m`,
-        count > 1 ? `\x1b[1;32m> Total: ${total}\x1b[0m` : '',
+        `\x1b[32m> roll --dice ${count}d${sides}\x1b[0m`,
+        `\x1b[32m> Results: [${rolls.join(', ')}]\x1b[0m`,
+        count > 1 ? `\x1b[32m> Total: ${total}\x1b[0m` : '',
         '```',
-      ].filter(Boolean).join('\n'));
+      ].filter(Boolean).join('\n'))
+      .setFooter({ text: brand.footer })
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   },

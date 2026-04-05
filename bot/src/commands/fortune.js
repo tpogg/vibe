@@ -30,11 +30,11 @@ module.exports = {
     const fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
 
     const embed = new EmbedBuilder()
-      .setColor(colors.warning)
-      .setTitle('📜 FORTUNE')
+      .setColor(colors.primary)
+      .setTitle('◉ FORTUNE')
       .setDescription([
         '```ansi',
-        `\x1b[33m> fortune.exe\x1b[0m`,
+        `\x1b[32m> fortune --wisdom\x1b[0m`,
         '```',
         '',
         `*"${fortune}"*`,

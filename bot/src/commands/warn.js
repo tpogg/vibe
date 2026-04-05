@@ -23,7 +23,7 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(colors.warning)
-      .setTitle(`${brand.emoji.shield} Warning Issued`)
+      .setTitle('◉ WARNING ISSUED')
       .addFields(
         { name: 'User', value: `${target}`, inline: true },
         { name: 'Moderator', value: `${interaction.user}`, inline: true },

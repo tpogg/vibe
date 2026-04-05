@@ -15,7 +15,7 @@ module.exports = {
 
     if (!data || data.xp === 0) {
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(colors.dim).setDescription(`**${user.username}** hasn't earned any XP yet.`)],
+        embeds: [new EmbedBuilder().setColor(colors.primary).setTitle('◉ LEVEL').setDescription('```ansi\n\x1b[32m> level --user ' + user.username + '\n> No data found.\x1b[0m\n```').setFooter({ text: brand.footer }).setTimestamp()],
         ephemeral: true,
       });
     }
@@ -28,10 +28,11 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(colors.primary)
-      .setTitle(`${user.username} — Level ${data.level}`)
+      .setTitle(`◉ LEVEL — ${user.username.toUpperCase()}`)
       .setThumbnail(user.displayAvatarURL({ size: 128 }))
       .setDescription([
         '```ansi',
+        `\x1b[32m> level --user ${user.username}\x1b[0m`,
         `\x1b[32m> XP: ${data.xp} / ${xpForNext}\x1b[0m`,
         `\x1b[32m> [${bar}] ${Math.round(progress * 100)}%\x1b[0m`,
         '```',

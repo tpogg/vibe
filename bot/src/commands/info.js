@@ -23,12 +23,11 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(colors.primary)
-      .setTitle(`${guild.name} — Server Info`)
+      .setTitle(`◉ SERVER — ${guild.name.toUpperCase()}`)
       .setThumbnail(guild.iconURL({ size: 256, dynamic: true }))
       .setDescription([
         '```ansi',
-        '\x1b[32m> SERVER_INFO.exe\x1b[0m',
-        '\x1b[32m> Scanning server metrics...\x1b[0m',
+        '\x1b[32m> serverinfo --scan\x1b[0m',
         '```',
       ].join('\n'))
       .addFields(

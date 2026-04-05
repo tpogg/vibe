@@ -10,11 +10,11 @@ module.exports = {
   async execute(interaction) {
     const embed = new EmbedBuilder()
       .setColor(colors.primary)
-      .setTitle('VIBE TERMINAL — Command List')
+      .setTitle('◉ HELP')
       .setDescription([
         '```ansi',
-        '\x1b[32m> HELP.exe loaded\x1b[0m',
-        '\x1b[32m> All systems operational\x1b[0m',
+        '\x1b[32m> help --list-all\x1b[0m',
+        '\x1b[32m> All systems operational.\x1b[0m',
         '```',
       ].join('\n'))
       .addFields(

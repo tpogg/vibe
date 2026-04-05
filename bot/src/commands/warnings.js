@@ -16,7 +16,7 @@ module.exports = {
 
     if (warns.length === 0) {
       return interaction.reply({
-        embeds: [new EmbedBuilder().setColor(colors.primary).setDescription(`**${target.username}** has no warnings.`)],
+        embeds: [new EmbedBuilder().setColor(colors.primary).setTitle('◉ WARNINGS').setDescription('```ansi\n\x1b[32m> warnings --user ' + target.username + '\n> No records found.\x1b[0m\n```').setFooter({ text: brand.footer }).setTimestamp()],
         ephemeral: true,
       });
     }
@@ -27,9 +27,15 @@ module.exports = {
     }).join('\n');
 
     const embed = new EmbedBuilder()
-      .setColor(colors.warning)
-      .setTitle(`Warnings — ${target.username}`)
-      .setDescription(list)
+      .setColor(colors.primary)
+      .setTitle(`◉ WARNINGS — ${target.username.toUpperCase()}`)
+      .setDescription([
+        '```ansi',
+        `\x1b[32m> warnings --user ${target.username}\x1b[0m`,
+        '```',
+        '',
+        list,
+      ].join('\n'))
       .setFooter({ text: `${warns.length} total warning(s) · ${brand.footer}` })
       .setTimestamp();
 

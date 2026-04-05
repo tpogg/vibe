@@ -51,7 +51,8 @@ async function postCrypto(guild, settings) {
   });
 
   await silentSend(ch, { embeds: [new EmbedBuilder()
-    .setColor(colors.warning)
+    .setColor(colors.primary)
+    .setTitle('◉ CRYPTO')
     .setDescription(lines.join('\n'))
     .setFooter({ text: 'CoinGecko · auto-feed' })
     .setTimestamp()
@@ -77,7 +78,8 @@ async function postNews(guild, settings) {
   });
 
   await silentSend(ch, { embeds: [new EmbedBuilder()
-    .setColor(colors.secondary)
+    .setColor(colors.primary)
+    .setTitle('◉ NEWS')
     .setDescription(lines.join('\n\n'))
     .setFooter({ text: 'Hacker News · auto-feed' })
     .setTimestamp()
@@ -100,7 +102,8 @@ async function postAI(guild, settings) {
   });
 
   await silentSend(ch, { embeds: [new EmbedBuilder()
-    .setColor(colors.accent)
+    .setColor(colors.primary)
+    .setTitle('◉ AI DROPS')
     .setDescription(lines.join('\n\n'))
     .setFooter({ text: 'AI News · auto-feed' })
     .setTimestamp()
@@ -125,6 +128,7 @@ async function postStocks(guild, settings) {
 
   await silentSend(ch, { embeds: [new EmbedBuilder()
     .setColor(colors.primary)
+    .setTitle('◉ TRENDING')
     .setDescription(lines.join('\n'))
     .setFooter({ text: 'CoinGecko Trending · auto-feed' })
     .setTimestamp()

@@ -23,12 +23,12 @@ module.exports = {
     const vibe = vibes[idx];
 
     const embed = new EmbedBuilder()
-      .setColor(vibe.color)
-      .setTitle(`${brand.emoji.bolt} VIBE CHECK`)
+      .setColor(colors.primary)
+      .setTitle('◉ VIBE CHECK')
       .setDescription([
         '```ansi',
-        `\x1b[32m> Scanning ${interaction.user.username}...\x1b[0m`,
-        `\x1b[32m> Vibe analysis complete.\x1b[0m`,
+        `\x1b[32m> vibecheck --scan ${interaction.user.username}\x1b[0m`,
+        `\x1b[32m> Analysis complete.\x1b[0m`,
         '```',
         '',
         `**Status:** ${vibe.level}`,

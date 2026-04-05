@@ -53,7 +53,8 @@ module.exports = {
           if (logCh) {
             const logEmbed = new EmbedBuilder()
               .setColor(colors.danger)
-              .setTitle('🛡️ AUTO-BAN — NSFW/GORE')
+              .setTitle('◉ AUTO-BAN — NSFW/GORE')
+              .setDescription('```ansi\n\x1b[32m> automod --ban\x1b[0m\n```')
               .addFields(
                 { name: 'User', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
                 { name: 'Channel', value: `#${message.channel.name}`, inline: true },

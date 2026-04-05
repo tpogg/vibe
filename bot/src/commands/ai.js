@@ -26,10 +26,10 @@ module.exports = {
       });
 
       const embed = new EmbedBuilder()
-        .setColor(colors.accent)
-        .setTitle('🧠 AI DROPS')
+        .setColor(colors.primary)
+        .setTitle('◉ AI DROPS')
         .setDescription([
-          '```ansi', '\x1b[35m> ai --latest\x1b[0m', '```', '',
+          '```ansi', '\x1b[32m> ai --latest\x1b[0m', '```', '',
           ...lines,
         ].join('\n'))
         .setFooter({ text: `Hacker News AI · ${brand.footer}` })
