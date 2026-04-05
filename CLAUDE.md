@@ -7,25 +7,28 @@ This file provides guidance for AI assistants (Claude Code and others) working i
 ## Project Overview
 
 **Repository:** tpogg/vibe
-**Status:** Newly initialized — update this section as the project takes shape.
+**Description:** A retro terminal portfolio site with an interconnected agent knowledge system.
 
-> When the project purpose, tech stack, and architecture are established, document them here. Include: what the project does, who it serves, and any high-level architectural decisions.
+The project contains:
+1. **Terminal portfolio** (`index.html`) — a CRT-styled interactive terminal web app
+2. **Agent knowledge system** (`knowledge/`) — a wiki-style knowledge graph about how agents think through external structures
 
 ---
 
 ## Repository Structure
 
-> Document the directory layout here as the project grows. Example:
-
 ```
 vibe/
-├── src/                  # Application source code
-├── tests/                # Test files
-├── docs/                 # Project documentation
-├── .github/              # CI/CD workflows and GitHub configuration
-├── CLAUDE.md             # This file
-├── README.md             # User-facing project documentation
-└── package.json          # (or equivalent build manifest)
+├── index.html                # Retro terminal portfolio web app
+├── knowledge/                # Agent knowledge system
+│   ├── index.md              # Root entry point — start here
+│   ├── synthesis/            # Cross-cutting arguments
+│   ├── mocs/                 # Maps of Content (topic hubs)
+│   ├── notes/                # Atomic concept notes
+│   ├── claims/               # Cross-domain insights
+│   └── explorations/         # Open research questions
+├── CLAUDE.md                 # This file
+└── .github/                  # CI/CD workflows
 ```
 
 ---
@@ -175,16 +178,58 @@ Before taking any of these actions, explain the plan and ask for user confirmati
 
 ---
 
+## Agent Knowledge System
+
+The `knowledge/` directory contains an interconnected wiki-style knowledge graph. When working with it, follow these practices:
+
+### Navigation
+
+1. **Start at `knowledge/index.md`** — it lists all MOCs, synthesis notes, claims, and explorations
+2. **Follow `[[wiki links]]`** to traverse between notes. Links map to file names: `[[graph-structure]]` → `knowledge/mocs/graph-structure.md`
+3. **Use progressive disclosure** — read the MOC first, then drill into specific notes as needed. Don't load everything at once.
+
+### File resolution for `[[wiki links]]`
+
+Search in this order: `mocs/` → `notes/` → `synthesis/` → `claims/` → `explorations/`
+
+### When adding new notes
+
+- **One idea per note** — keep notes atomic
+- **Title as claim** — use "X enables Y" not just "About X"
+- **Link generously** — add `[[wiki links]]` to connect to existing notes
+- **Update the parent MOC** — add the new note to the relevant MOC's list
+- **Include metadata** — Type, Connected to, and a horizontal rule before content
+
+### When modifying the knowledge system
+
+- Don't delete notes without checking for incoming links (grep for the note name across all files)
+- When splitting a note, update all files that link to it
+- When a MOC grows past ~20 entries, consider extracting a sub-MOC
+
+### Knowledge system domains
+
+| MOC | Domain |
+|-----|--------|
+| `graph-structure` | Wiki links, topology, traversal |
+| `agent-cognition` | Context windows, sessions, attention limits |
+| `agent-cognition-hooks` | Automated quality enforcement |
+| `agent-cognition-platforms` | Platform tiers, context file architecture |
+| `discovery-retrieval` | Search, progressive disclosure, entry points |
+| `processing-workflow` | Sessions, handoffs, pipeline stages |
+| `note-quality` | Atomicity, density, evergreen principles |
+| `system-evolution` | Growth, refactoring, maintenance |
+| `human-agent-collaboration` | Role division, trust, interfaces |
+
+---
+
 ## Architecture and Design Decisions
 
-> Document significant architectural decisions here as they are made. Use a lightweight ADR (Architecture Decision Record) format:
+### ADR-001: Wiki-Link Knowledge Graph
 
-### ADR-001: [Title]
-
-- **Status:** Proposed / Accepted / Deprecated
-- **Context:** Why this decision was needed
-- **Decision:** What was decided
-- **Consequences:** Trade-offs and implications
+- **Status:** Accepted
+- **Context:** Agents need external structures to think with across sessions. Traditional docs are linear and hard to traverse selectively.
+- **Decision:** Use a wiki-style knowledge graph with `[[links]]`, MOCs as hubs, and atomic notes. Plain markdown for platform-agnostic compatibility.
+- **Consequences:** Enables progressive disclosure and efficient traversal. Requires ongoing link maintenance as the graph grows.
 
 ---
 
@@ -207,4 +252,4 @@ Keep this file current as the project evolves. Update it when:
 - New team members or AI assistants need onboarding context
 - Architectural decisions are made
 
-Last updated: 2026-03-29
+Last updated: 2026-04-05
