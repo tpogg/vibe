@@ -1,6 +1,6 @@
 const { ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { colors, brand } = require('../config');
-const { createTicket, closeTicket, getOpenTickets, getGuildSettings } = require('../utils/database');
+const { closeTicket, getOpenTickets, getGuildSettings } = require('../utils/database');
 
 async function handleButton(interaction) {
   if (interaction.customId === 'ticket_create') {
