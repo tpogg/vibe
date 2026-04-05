@@ -20,11 +20,12 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
     const guild = interaction.guild;
+    const safeReply = (opts) => interaction.editReply(opts).catch(() => {});
     const log = [];
 
     try {
       // ─── Step 1: NUKE ──────────────────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('SETUP', '```ansi\n\x1b[31m> rm -rf ./channels/*\x1b[0m\n```')] });
+      await safeReply({ embeds: [vibeEmbed('SETUP', '```ansi\n\x1b[31m> rm -rf ./channels/*\x1b[0m\n```')] });
 
       const existing = guild.channels.cache.filter(c => c.id !== interaction.channel.id);
       let deleted = 0;
@@ -34,7 +35,7 @@ module.exports = {
       log.push(`✓ Purged ${deleted} channels`);
 
       // ─── Step 2: ROLES ─────────────────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Creating roles...\x1b[0m\n\`\`\``)] });
+      await safeReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> Creating roles...\x1b[0m\n\`\`\``)] });
 
       const createdRoles = {};
       for (const def of [...server.roles].reverse()) {
@@ -55,7 +56,7 @@ module.exports = {
       log.push(`✓ ${Object.keys(createdRoles).length} roles`);
 
       // ─── Step 3: VERIFICATION CHANNEL ──────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> mkdir -p channels/*\x1b[0m\n\`\`\``)] });
+      await safeReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> mkdir -p channels/*\x1b[0m\n\`\`\``)] });
 
       const modRole = createdRoles['Mod'];
       const viberRole = createdRoles['Viber'];
@@ -137,8 +138,14 @@ module.exports = {
             opts.defaultForumLayout = ForumLayoutType.ListView;
           }
 
-          const newCh = await guild.channels.create(opts);
-          chCount++;
+          let newCh;
+          try {
+            newCh = await guild.channels.create(opts);
+            chCount++;
+          } catch (chErr) {
+            console.error(`[SETUP] Failed to create channel ${ch.name}:`, chErr.message);
+            continue;
+          }
 
           // Store key channel IDs
           if (ch.name.includes('welcome')) updateGuildSetting(guild.id, 'welcome_channel_id', newCh.id);
@@ -159,7 +166,7 @@ module.exports = {
       }
 
       // ─── Step 5: POST CONTENT ──────────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> echo "content" > channels/*\x1b[0m\n\`\`\``)] });
+      await safeReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> echo "content" > channels/*\x1b[0m\n\`\`\``)] });
 
       // Rules
       const rulesCh = guild.channels.cache.find(c => c.name.includes('rules') && c.type === ChannelType.GuildText);
@@ -272,7 +279,7 @@ module.exports = {
       }
 
       // ─── Step 8: AutoMod v2 Rules ─────────────────────────────────────
-      await interaction.editReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> automod --configure\x1b[0m\n\`\`\``)] });
+      await safeReply({ embeds: [vibeEmbed('SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> automod --configure\x1b[0m\n\`\`\``)] });
 
       // Delete existing automod rules to avoid duplicates
       try {
@@ -372,14 +379,14 @@ module.exports = {
 
       try {
         if (interaction.channel.id !== target.id) await interaction.channel.delete();
-        else await interaction.editReply({ content: '`✓ Done.`', embeds: [] });
+        else await safeReply({ content: '`✓ Done.`', embeds: [] });
       } catch {
-        await interaction.editReply({ content: '`✓ Done.`', embeds: [] }).catch(() => {});
+        await safeReply({ content: '`✓ Done.`', embeds: [] }).catch(() => {});
       }
 
     } catch (err) {
       console.error('[SETUP ERROR]', err);
-      await interaction.editReply({
+      await safeReply({
         embeds: [vibeEmbed('ERROR', `\`\`\`ansi\n\x1b[31m${err.message}\x1b[0m\n\`\`\`\n\n${log.map(l => `▸ ${l}`).join('\n')}`)],
       }).catch(() => {});
     }
