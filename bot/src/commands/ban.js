@@ -16,9 +16,10 @@ module.exports = {
     const reason = interaction.options.getString('reason') || 'No reason provided';
 
     if (!target) return interaction.reply({ embeds: [errorEmbed('User not found.')], ephemeral: true });
+    if (target.id === interaction.user.id) return interaction.reply({ embeds: [errorEmbed('You cannot ban yourself.')], ephemeral: true });
     if (!target.bannable) return interaction.reply({ embeds: [errorEmbed('I cannot ban this user.')], ephemeral: true });
 
-    await target.ban({ reason });
+    await target.ban({ reason, deleteMessageSeconds: 86400 });
 
     const embed = modEmbed('ban', interaction.user, target.user, reason);
     await interaction.reply({ embeds: [embed] });

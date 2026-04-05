@@ -37,6 +37,7 @@ module.exports = {
             '`/fortune` — Random wisdom',
             '`/coinflip` — Flip a coin',
             '`/roll` — Roll dice',
+            '`/poll` — Create a native poll',
           ].join('\n'),
           inline: true,
         },

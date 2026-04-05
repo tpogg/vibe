@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ForumLayoutType } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ForumLayoutType, AutoModerationRuleTriggerType, AutoModerationRuleEventType, AutoModerationActionType } = require('discord.js');
 const { server, colors, brand } = require('../config');
 const { updateGuildSetting } = require('../utils/database');
 const { vibeEmbed } = require('../utils/embeds');
@@ -201,6 +201,83 @@ module.exports = {
         }
       }
       log.push('✓ Feed channels initialized');
+
+      // ─── Step 8: AutoMod v2 Rules ─────────────────────────────────────
+      await interaction.editReply({ embeds: [vibeEmbed('⚙ SETUP', `\`\`\`ansi\n${log.join('\n')}\n\x1b[32m> automod --configure\x1b[0m\n\`\`\``)] });
+
+      // Delete existing automod rules to avoid duplicates
+      try {
+        const existingRules = await guild.autoModerationRules.fetch();
+        for (const [, rule] of existingRules) {
+          if (rule.name.startsWith('VIBE:')) await rule.delete();
+        }
+      } catch {}
+
+      // Anti-spam rule
+      try {
+        await guild.autoModerationRules.create({
+          name: 'VIBE: Anti-Spam',
+          eventType: AutoModerationRuleEventType.MessageSend,
+          triggerType: AutoModerationRuleTriggerType.Spam,
+          actions: [
+            { type: AutoModerationActionType.BlockMessage, metadata: { customMessage: '⚠ Spam detected. Message blocked.' } },
+            { type: AutoModerationActionType.Timeout, metadata: { durationSeconds: 300 } },
+          ],
+          enabled: true,
+        });
+      } catch {}
+
+      // Anti mass-mention rule
+      try {
+        await guild.autoModerationRules.create({
+          name: 'VIBE: Anti-Mention-Spam',
+          eventType: AutoModerationRuleEventType.MessageSend,
+          triggerType: AutoModerationRuleTriggerType.MentionSpam,
+          triggerMetadata: { mentionTotalLimit: 5 },
+          actions: [
+            { type: AutoModerationActionType.BlockMessage, metadata: { customMessage: '⚠ Too many mentions. Message blocked.' } },
+            { type: AutoModerationActionType.Timeout, metadata: { durationSeconds: 600 } },
+          ],
+          enabled: true,
+        });
+      } catch {}
+
+      // Keyword filter (slurs, NSFW terms)
+      try {
+        await guild.autoModerationRules.create({
+          name: 'VIBE: Content Filter',
+          eventType: AutoModerationRuleEventType.MessageSend,
+          triggerType: AutoModerationRuleTriggerType.KeywordPreset,
+          triggerMetadata: {
+            presets: [1, 2, 3], // Profanity, SexualContent, Slurs
+          },
+          actions: [
+            { type: AutoModerationActionType.BlockMessage, metadata: { customMessage: '⚠ Content blocked by auto-moderation.' } },
+          ],
+          enabled: true,
+        });
+      } catch {}
+
+      log.push('✓ AutoMod v2 rules configured');
+
+      // ─── Step 9: Server Onboarding ─────────────────────────────────────
+      try {
+        const welcomeCh = guild.channels.cache.find(c => c.name.includes('welcome'));
+        const rulesCh2 = guild.channels.cache.find(c => c.name.includes('rules') && c.type === ChannelType.GuildText);
+        const generalCh2 = guild.channels.cache.find(c => c.name.includes('general') && c.type === ChannelType.GuildText);
+
+        const defaultChannels = [welcomeCh, rulesCh2, generalCh2].filter(Boolean).map(c => c.id);
+
+        // Set system channel for welcome messages
+        if (welcomeCh) {
+          await guild.setSystemChannel(welcomeCh.id);
+          await guild.setSystemChannelFlags(0); // Enable all system messages
+        }
+
+        log.push('✓ Onboarding configured');
+      } catch (e) {
+        log.push('⚠ Onboarding: ' + e.message?.slice(0, 50));
+      }
 
       // ─── DONE ──────────────────────────────────────────────────────────
       updateGuildSetting(guild.id, 'setup_complete', 1);

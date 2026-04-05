@@ -62,7 +62,7 @@ async function createTicketChannel(interaction, reason) {
     c => c.name.includes('STAFF') && c.type === ChannelType.GuildCategory
   );
 
-  const modRole = guild.roles.cache.find(r => r.name === 'Moderator');
+  const modRole = guild.roles.cache.find(r => r.name === 'Mod' || r.name === 'Moderator');
 
   const permOverwrites = [
     { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },

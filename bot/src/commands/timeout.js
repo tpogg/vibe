@@ -18,6 +18,7 @@ module.exports = {
     const reason = interaction.options.getString('reason') || 'No reason provided';
 
     if (!target) return interaction.reply({ embeds: [errorEmbed('User not found.')], ephemeral: true });
+    if (target.id === interaction.user.id) return interaction.reply({ embeds: [errorEmbed('You cannot timeout yourself.')], ephemeral: true });
     if (!target.moderatable) return interaction.reply({ embeds: [errorEmbed('I cannot timeout this user.')], ephemeral: true });
 
     await target.timeout(minutes * 60_000, reason);

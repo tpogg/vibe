@@ -1,4 +1,3 @@
-const { AttachmentBuilder } = require('discord.js');
 const { getGuildSettings } = require('../utils/database');
 const { welcomeEmbed } = require('../utils/embeds');
 
@@ -27,18 +26,7 @@ module.exports = {
 
         const embed = welcomeEmbed(member);
 
-        // Try to generate a welcome card image
-        let files = [];
-        try {
-          const { generateWelcomeCard } = require('../utils/canvas');
-          const card = generateWelcomeCard(member.user.username, member.guild.memberCount);
-          files = [new AttachmentBuilder(card, { name: 'welcome.png' })];
-          embed.setImage('attachment://welcome.png');
-        } catch {
-          // Canvas may not be available, just send the embed
-        }
-
-        await channel.send({ embeds: [embed], files });
+        await channel.send({ embeds: [embed] });
       } catch (err) {
         console.error('[WELCOME]', err.message);
       }
