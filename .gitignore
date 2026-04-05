@@ -1,0 +1,21 @@
+# Anchor / Solana
+target/
+.anchor/
+test-ledger/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# Build artifacts
+dist/

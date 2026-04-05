@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0f1923;
+  color: #e5e7eb;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+::-webkit-scrollbar-thumb {
+  background: #4a4a6a;
+  border-radius: 3px;
+}
+
+/* Wallet adapter button overrides */
+.wallet-adapter-button {
+  background-color: rgba(255, 215, 0, 0.15) !important;
+  color: #ffd700 !important;
+  border-radius: 0.75rem !important;
+}
+.wallet-adapter-button:hover {
+  background-color: rgba(255, 215, 0, 0.25) !important;
+}

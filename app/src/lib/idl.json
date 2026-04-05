@@ -1,0 +1,181 @@
+{
+  "address": "D8Wy2hh16z76BDxu8jEyZQTcVYSeAWTgS4xyqZQzp9vT",
+  "version": "0.1.0",
+  "name": "discord_poker",
+  "instructions": [
+    {
+      "name": "createTable",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "creator", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "tableId", "type": "u64" },
+        { "name": "maxPlayers", "type": "u8" },
+        { "name": "buyIn", "type": "u64" },
+        { "name": "isPrivate", "type": "bool" },
+        { "name": "inviteCode", "type": { "array": ["u8", 8] } },
+        { "name": "rakeBps", "type": "u16" },
+        { "name": "houseWallet", "type": "publicKey" }
+      ]
+    },
+    {
+      "name": "joinTable",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "player", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "inviteCode", "type": { "option": { "array": ["u8", 8] } } }
+      ]
+    },
+    {
+      "name": "leaveTable",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "player", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "startGame",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "creator", "isMut": true, "isSigner": true },
+        { "name": "slotHashes", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "placeBet",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "player", "isMut": false, "isSigner": true }
+      ],
+      "args": [
+        {
+          "name": "action",
+          "type": {
+            "defined": "BetAction"
+          }
+        }
+      ]
+    },
+    {
+      "name": "advancePhase",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "caller", "isMut": false, "isSigner": true }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle",
+      "accounts": [
+        { "name": "gameTable", "isMut": true, "isSigner": false },
+        { "name": "houseWallet", "isMut": true, "isSigner": false },
+        { "name": "caller", "isMut": false, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GameTable",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "tableId", "type": "u64" },
+          { "name": "creator", "type": "publicKey" },
+          { "name": "maxPlayers", "type": "u8" },
+          { "name": "buyIn", "type": "u64" },
+          { "name": "isPrivate", "type": "bool" },
+          { "name": "inviteCode", "type": { "array": ["u8", 8] } },
+          { "name": "players", "type": { "vec": { "defined": "PlayerState" } } },
+          { "name": "communityCards", "type": { "array": ["u8", 5] } },
+          { "name": "deck", "type": { "array": ["u8", 52] } },
+          { "name": "deckIndex", "type": "u8" },
+          { "name": "pot", "type": "u64" },
+          { "name": "currentBet", "type": "u64" },
+          { "name": "dealerPos", "type": "u8" },
+          { "name": "currentPlayer", "type": "u8" },
+          { "name": "gamePhase", "type": { "defined": "GamePhase" } },
+          { "name": "roundNumber", "type": "u64" },
+          { "name": "rakeBps", "type": "u16" },
+          { "name": "houseWallet", "type": "publicKey" },
+          { "name": "lastActionTs", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "PlayerState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "pubkey", "type": "publicKey" },
+          { "name": "seat", "type": "u8" },
+          { "name": "chips", "type": "u64" },
+          { "name": "holeCards", "type": { "array": ["u8", 2] } },
+          { "name": "currentBet", "type": "u64" },
+          { "name": "isFolded", "type": "bool" },
+          { "name": "isAllIn", "type": "bool" },
+          { "name": "isActive", "type": "bool" }
+        ]
+      }
+    },
+    {
+      "name": "GamePhase",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          { "name": "Waiting" },
+          { "name": "PreFlop" },
+          { "name": "Flop" },
+          { "name": "Turn" },
+          { "name": "River" },
+          { "name": "Showdown" }
+        ]
+      }
+    },
+    {
+      "name": "BetAction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          { "name": "Fold" },
+          { "name": "Check" },
+          { "name": "Call" },
+          { "name": "Raise", "fields": [{ "name": "amount", "type": "u64" }] },
+          { "name": "AllIn" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "TableFull", "msg": "Table is full" },
+    { "code": 6001, "name": "AlreadyJoined", "msg": "Player already at this table" },
+    { "code": 6002, "name": "PlayerNotFound", "msg": "Player not found at this table" },
+    { "code": 6003, "name": "InvalidPhase", "msg": "Invalid game phase for this action" },
+    { "code": 6004, "name": "NotYourTurn", "msg": "Not your turn" },
+    { "code": 6005, "name": "InsufficientChips", "msg": "Insufficient chips" },
+    { "code": 6006, "name": "InvalidBetAmount", "msg": "Invalid bet amount" },
+    { "code": 6007, "name": "InvalidRaise", "msg": "Invalid raise amount" },
+    { "code": 6008, "name": "NotEnoughPlayers", "msg": "Need at least 2 players to start" },
+    { "code": 6009, "name": "InvalidInviteCode", "msg": "Invalid invite code for private table" },
+    { "code": 6010, "name": "InvalidMaxPlayers", "msg": "Max players must be between 2 and 9" },
+    { "code": 6011, "name": "CannotLeaveDuringHand", "msg": "Cannot leave during an active hand" },
+    { "code": 6012, "name": "InvalidRake", "msg": "Invalid rake basis points" },
+    { "code": 6013, "name": "NotCreator", "msg": "Only the creator can start the game" },
+    { "code": 6014, "name": "Overflow", "msg": "Arithmetic overflow" }
+  ],
+  "metadata": {
+    "address": "D8Wy2hh16z76BDxu8jEyZQTcVYSeAWTgS4xyqZQzp9vT"
+  }
+}
