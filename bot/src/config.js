@@ -31,8 +31,7 @@ module.exports = {
     },
   },
 
-  // ─── Streamlined server layout ─────────────────────────────────────────────
-  // Minimal. Clean. No clutter.
+  // ─── Server Layout ─────────────────────────────────────────────────────────
   server: {
     categories: [
       {
@@ -47,15 +46,33 @@ module.exports = {
         name: '〔 MAIN 〕',
         channels: [
           { name: '💬│general', type: 'text', topic: 'Main chat. Keep the vibe clean.' },
-          { name: '🤖│bot-cmds', type: 'text', topic: 'Bot commands go here.' },
           { name: '📸│media', type: 'text', topic: 'Images, links, videos.' },
+          { name: '⭐│starboard', type: 'text', topic: 'Community highlights.' },
+          { name: '🤖│bot-cmds', type: 'text', topic: 'Commands & tickets here.' },
+        ],
+      },
+      {
+        name: '〔 FEED 〕',
+        channels: [
+          { name: '📰│news', type: 'text', topic: 'Live news feed — auto-posted.', readonly: true },
+          { name: '₿│crypto', type: 'text', topic: 'Crypto prices & alerts — auto-posted.', readonly: true },
+          { name: '📈│stocks', type: 'text', topic: 'Market movers & stock alerts — auto-posted.', readonly: true },
+          { name: '🧠│ai-drops', type: 'text', topic: 'Latest AI news, model releases, tools — auto-posted.', readonly: true },
+        ],
+      },
+      {
+        name: '〔 FORUM 〕',
+        channels: [
+          { name: '💡│ideas', type: 'forum', topic: 'Pitch ideas. Vote on the best.' },
+          { name: '🛠│showcase', type: 'forum', topic: 'Show off your builds, projects, code.' },
         ],
       },
       {
         name: '〔 CONNECT 〕',
         channels: [
           { name: 'Lounge', type: 'voice' },
-          { name: 'Session', type: 'voice' },
+          { name: 'Co-work', type: 'voice' },
+          { name: 'Stage', type: 'stage' },
         ],
       },
       {
@@ -63,6 +80,7 @@ module.exports = {
         staffOnly: true,
         channels: [
           { name: '🔒│mod-log', type: 'text', topic: 'Action logs.' },
+          { name: '🔧│admin', type: 'text', topic: 'Staff discussion.' },
         ],
       },
     ],
@@ -84,6 +102,15 @@ module.exports = {
       { name: '───────', color: null, hoist: false, separator: true },
       { name: 'Viber', color: 0x00AA2A, hoist: false, isDefault: true },
     ],
+  },
+
+  // Feed config — free public APIs
+  feeds: {
+    intervalMinutes: 30,
+    crypto: {
+      coins: ['bitcoin', 'ethereum', 'solana', 'dogecoin'],
+      apiUrl: 'https://api.coingecko.com/api/v3',
+    },
   },
 
   leveling: {

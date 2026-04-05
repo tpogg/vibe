@@ -53,6 +53,16 @@ module.exports = {
           inline: true,
         },
         {
+          name: `📡  Feeds`,
+          value: [
+            '`/crypto` — Live crypto prices',
+            '`/news` — Tech headlines',
+            '`/stocks` — Trending tickers',
+            '`/ai` — AI news & drops',
+          ].join('\n'),
+          inline: true,
+        },
+        {
           name: `${brand.emoji.star}  Engagement`,
           value: [
             '`/level` — Check your level & XP',

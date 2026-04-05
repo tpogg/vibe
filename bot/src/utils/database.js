@@ -54,6 +54,10 @@ function initDatabase() {
       starboard_channel_id TEXT,
       ticket_category_id TEXT,
       autorole_id TEXT,
+      news_channel_id TEXT,
+      crypto_channel_id TEXT,
+      stocks_channel_id TEXT,
+      ai_channel_id TEXT,
       setup_complete INTEGER DEFAULT 0
     );
 
@@ -66,6 +70,14 @@ function initDatabase() {
       created_at INTEGER DEFAULT (unixepoch())
     );
   `);
+
+  // Migrate: add feed columns if they don't exist (upgrade path)
+  const cols = d.prepare("PRAGMA table_info(guild_settings)").all().map(c => c.name);
+  for (const col of ['news_channel_id', 'crypto_channel_id', 'stocks_channel_id', 'ai_channel_id']) {
+    if (!cols.includes(col)) {
+      d.exec(`ALTER TABLE guild_settings ADD COLUMN ${col} TEXT`);
+    }
+  }
 }
 
 // ─── XP Helpers ──────────────────────────────────────────────────────────────

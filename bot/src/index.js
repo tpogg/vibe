@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, Partials, Collection, ActivityType, REST, Rou
 const fs = require('fs');
 const path = require('path');
 const { initDatabase } = require('./utils/database');
+const { startFeeds } = require('./systems/feeds');
 
 // ─── Client ──────────────────────────────────────────────────────────────────
 const client = new Client({
@@ -118,6 +119,9 @@ client.once('ready', async () => {
   } catch (err) {
     console.error('[VIBE] Failed to register commands:', err.message);
   }
+
+  // Start auto-feeds
+  startFeeds(client);
 
   const rotate = () => {
     const s = STATUSES[si++ % STATUSES.length];
