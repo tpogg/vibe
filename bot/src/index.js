@@ -1,3 +1,7 @@
+console.log('[VIBE] Booting...');
+
+try {
+
 const { Client, GatewayIntentBits, Partials, Collection, ActivityType, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -146,7 +150,18 @@ if (!token) {
   process.exit(1);
 }
 
+console.log('[VIBE] Logging in...');
 client.login(token);
 
 process.on('SIGINT', () => { client.destroy(); process.exit(0); });
 process.on('SIGTERM', () => { client.destroy(); process.exit(0); });
+
+} catch (err) {
+  console.error('[FATAL] Startup crash:', err);
+  process.exit(1);
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught:', err);
+  process.exit(1);
+});
