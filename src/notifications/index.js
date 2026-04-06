@@ -1,7 +1,7 @@
 const https = require('https');
 const nodemailer = require('nodemailer');
 const config = require('../config');
-const { stmts } = require('../db');
+const db = require('../db');
 
 // Connected SSE clients for browser push
 const sseClients = new Set();
@@ -103,7 +103,7 @@ async function sendEmail(subject, html) {
 
 // Process pending alerts and send notifications
 async function processPendingAlerts() {
-  const alerts = stmts.getPendingAlerts.all();
+  const alerts = db.getPendingAlerts();
   if (alerts.length === 0) return;
 
   console.log(`[NOTIFY] Processing ${alerts.length} pending alerts...`);
@@ -161,7 +161,7 @@ async function processPendingAlerts() {
         await sendSMS(smsBody);
       }
 
-      stmts.markAlertNotified.run(alert.id);
+      db.markAlertNotified(alert.id);
     } catch (err) {
       console.error(`[NOTIFY] Failed to send alert ${alert.id}:`, err.message);
     }

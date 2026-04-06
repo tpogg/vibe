@@ -1,155 +1,227 @@
-const Database = require('better-sqlite3');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const config = require('../config');
 
-// Ensure data directory exists
 const dataDir = path.dirname(config.DB_PATH);
+const dbFile = config.DB_PATH.replace('.db', '.json');
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const db = new Database(config.DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-// Initialize schema
-db.exec(`
-  CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    retailer TEXT NOT NULL,
-    name TEXT NOT NULL,
-    product_type TEXT NOT NULL,
-    url TEXT NOT NULL,
-    image_url TEXT DEFAULT '',
-    price REAL DEFAULT 0,
-    currency TEXT DEFAULT 'USD',
-    status TEXT DEFAULT 'unknown',
-    is_preorder INTEGER DEFAULT 0,
-    is_prerelease INTEGER DEFAULT 0,
-    release_date TEXT DEFAULT '',
-    set_name TEXT DEFAULT '',
-    last_seen_in_stock TEXT DEFAULT '',
-    first_seen TEXT DEFAULT '',
-    last_checked TEXT DEFAULT '',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now')),
-    UNIQUE(retailer, url)
-  );
-
-  CREATE TABLE IF NOT EXISTS scan_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    retailer TEXT NOT NULL,
-    status TEXT NOT NULL,
-    products_found INTEGER DEFAULT 0,
-    in_stock_count INTEGER DEFAULT 0,
-    error_message TEXT DEFAULT '',
-    duration_ms INTEGER DEFAULT 0,
-    scanned_at TEXT DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS alerts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER NOT NULL,
-    alert_type TEXT NOT NULL,
-    message TEXT NOT NULL,
-    notified INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS watchlist (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    keyword TEXT NOT NULL,
-    product_type TEXT DEFAULT '',
-    retailer TEXT DEFAULT '',
-    notify_discord INTEGER DEFAULT 1,
-    notify_email INTEGER DEFAULT 0,
-    notify_browser INTEGER DEFAULT 1,
-    active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_products_retailer ON products(retailer);
-  CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
-  CREATE INDEX IF NOT EXISTS idx_products_type ON products(product_type);
-  CREATE INDEX IF NOT EXISTS idx_alerts_notified ON alerts(notified);
-`);
-
-// Prepared statements
-const stmts = {
-  upsertProduct: db.prepare(`
-    INSERT INTO products (retailer, name, product_type, url, image_url, price, currency, status, is_preorder, is_prerelease, release_date, set_name, first_seen, last_checked)
-    VALUES (@retailer, @name, @product_type, @url, @image_url, @price, @currency, @status, @is_preorder, @is_prerelease, @release_date, @set_name, datetime('now'), datetime('now'))
-    ON CONFLICT(retailer, url) DO UPDATE SET
-      name = @name,
-      price = @price,
-      status = @status,
-      is_preorder = @is_preorder,
-      is_prerelease = @is_prerelease,
-      release_date = @release_date,
-      image_url = CASE WHEN @image_url != '' THEN @image_url ELSE products.image_url END,
-      last_checked = datetime('now'),
-      last_seen_in_stock = CASE WHEN @status = 'in-stock' OR @status = 'pre-order' THEN datetime('now') ELSE products.last_seen_in_stock END,
-      updated_at = datetime('now')
-  `),
-
-  getProduct: db.prepare('SELECT * FROM products WHERE retailer = ? AND url = ?'),
-
-  getAllProducts: db.prepare(`
-    SELECT * FROM products ORDER BY
-      CASE status WHEN 'in-stock' THEN 0 WHEN 'pre-order' THEN 1 WHEN 'pre-release' THEN 2 ELSE 3 END,
-      updated_at DESC
-  `),
-
-  getProductsByRetailer: db.prepare('SELECT * FROM products WHERE retailer = ? ORDER BY updated_at DESC'),
-
-  getProductsByType: db.prepare('SELECT * FROM products WHERE product_type = ? ORDER BY updated_at DESC'),
-
-  getInStockProducts: db.prepare(`
-    SELECT * FROM products WHERE status IN ('in-stock', 'pre-order')
-    ORDER BY updated_at DESC
-  `),
-
-  searchProducts: db.prepare(`
-    SELECT * FROM products WHERE name LIKE '%' || ? || '%'
-    ORDER BY updated_at DESC
-  `),
-
-  logScan: db.prepare(`
-    INSERT INTO scan_log (retailer, status, products_found, in_stock_count, error_message, duration_ms)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `),
-
-  getRecentScans: db.prepare('SELECT * FROM scan_log ORDER BY scanned_at DESC LIMIT 50'),
-
-  createAlert: db.prepare(`
-    INSERT INTO alerts (product_id, alert_type, message)
-    VALUES (?, ?, ?)
-  `),
-
-  getPendingAlerts: db.prepare('SELECT a.*, p.name, p.url, p.retailer, p.price, p.status FROM alerts a JOIN products p ON a.product_id = p.id WHERE a.notified = 0'),
-
-  markAlertNotified: db.prepare('UPDATE alerts SET notified = 1 WHERE id = ?'),
-
-  addToWatchlist: db.prepare(`
-    INSERT INTO watchlist (keyword, product_type, retailer) VALUES (?, ?, ?)
-  `),
-
-  getWatchlist: db.prepare('SELECT * FROM watchlist WHERE active = 1'),
-
-  removeFromWatchlist: db.prepare('UPDATE watchlist SET active = 0 WHERE id = ?'),
-
-  getStats: db.prepare(`
-    SELECT
-      COUNT(*) as total_products,
-      SUM(CASE WHEN status = 'in-stock' THEN 1 ELSE 0 END) as in_stock,
-      SUM(CASE WHEN status = 'pre-order' THEN 1 ELSE 0 END) as pre_orders,
-      SUM(CASE WHEN status = 'pre-release' THEN 1 ELSE 0 END) as pre_releases,
-      SUM(CASE WHEN status = 'out-of-stock' THEN 1 ELSE 0 END) as out_of_stock,
-      COUNT(DISTINCT retailer) as retailers_tracked
-    FROM products
-  `),
+// In-memory store with JSON file persistence
+let store = {
+  products: [],
+  scanLog: [],
+  alerts: [],
+  watchlist: [],
+  nextId: { products: 1, scanLog: 1, alerts: 1, watchlist: 1 },
 };
 
-module.exports = { db, stmts };
+// Load from disk if exists
+function load() {
+  try {
+    if (fs.existsSync(dbFile)) {
+      store = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+    }
+  } catch (err) {
+    console.error('[DB] Failed to load:', err.message);
+  }
+}
+
+// Save to disk (debounced)
+let saveTimeout = null;
+function save() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    try {
+      fs.writeFileSync(dbFile, JSON.stringify(store, null, 2));
+    } catch (err) {
+      console.error('[DB] Failed to save:', err.message);
+    }
+  }, 500);
+}
+
+function saveSync() {
+  try {
+    fs.writeFileSync(dbFile, JSON.stringify(store, null, 2));
+  } catch (err) {
+    console.error('[DB] Failed to save:', err.message);
+  }
+}
+
+load();
+
+// ── Product operations ─────────────────────────────────────────────────────
+function upsertProduct(product) {
+  const now = new Date().toISOString();
+  const idx = store.products.findIndex(p => p.retailer === product.retailer && p.url === product.url);
+
+  if (idx >= 0) {
+    const existing = store.products[idx];
+    store.products[idx] = {
+      ...existing,
+      name: product.name,
+      price: product.price,
+      status: product.status,
+      is_preorder: product.is_preorder,
+      is_prerelease: product.is_prerelease,
+      release_date: product.release_date,
+      image_url: product.image_url || existing.image_url,
+      last_checked: now,
+      last_seen_in_stock: (product.status === 'in-stock' || product.status === 'pre-order') ? now : existing.last_seen_in_stock,
+      updated_at: now,
+    };
+    save();
+    return existing; // return previous state
+  } else {
+    const newProduct = {
+      id: store.nextId.products++,
+      ...product,
+      first_seen: now,
+      last_checked: now,
+      last_seen_in_stock: (product.status === 'in-stock' || product.status === 'pre-order') ? now : '',
+      created_at: now,
+      updated_at: now,
+    };
+    store.products.push(newProduct);
+    save();
+    return null; // no previous state
+  }
+}
+
+function getProduct(retailer, url) {
+  return store.products.find(p => p.retailer === retailer && p.url === url) || null;
+}
+
+function getAllProducts() {
+  const order = { 'in-stock': 0, 'pre-order': 1, 'pre-release': 2, 'out-of-stock': 3, 'unknown': 4 };
+  return [...store.products].sort((a, b) => (order[a.status] ?? 4) - (order[b.status] ?? 4) || b.updated_at?.localeCompare(a.updated_at));
+}
+
+function getProductsByRetailer(retailer) {
+  return store.products.filter(p => p.retailer === retailer).sort((a, b) => b.updated_at?.localeCompare(a.updated_at));
+}
+
+function getProductsByType(type) {
+  return store.products.filter(p => p.product_type === type).sort((a, b) => b.updated_at?.localeCompare(a.updated_at));
+}
+
+function getInStockProducts() {
+  return store.products.filter(p => p.status === 'in-stock' || p.status === 'pre-order').sort((a, b) => b.updated_at?.localeCompare(a.updated_at));
+}
+
+function searchProducts(query) {
+  const q = query.toLowerCase();
+  return store.products.filter(p => p.name.toLowerCase().includes(q)).sort((a, b) => b.updated_at?.localeCompare(a.updated_at));
+}
+
+// ── Scan log ───────────────────────────────────────────────────────────────
+function logScan(retailer, status, productsFound, inStockCount, errorMessage, durationMs) {
+  const entry = {
+    id: store.nextId.scanLog++,
+    retailer,
+    status,
+    products_found: productsFound,
+    in_stock_count: inStockCount,
+    error_message: errorMessage,
+    duration_ms: durationMs,
+    scanned_at: new Date().toISOString(),
+  };
+  store.scanLog.unshift(entry);
+  // Keep only last 200 entries
+  if (store.scanLog.length > 200) store.scanLog = store.scanLog.slice(0, 200);
+  save();
+  return entry;
+}
+
+function getRecentScans() {
+  return store.scanLog.slice(0, 50);
+}
+
+// ── Alerts ─────────────────────────────────────────────────────────────────
+function createAlert(productId, alertType, message) {
+  const alert = {
+    id: store.nextId.alerts++,
+    product_id: productId,
+    alert_type: alertType,
+    message,
+    notified: 0,
+    created_at: new Date().toISOString(),
+  };
+  store.alerts.unshift(alert);
+  if (store.alerts.length > 500) store.alerts = store.alerts.slice(0, 500);
+  save();
+  return alert;
+}
+
+function getPendingAlerts() {
+  return store.alerts
+    .filter(a => a.notified === 0)
+    .map(a => {
+      const product = store.products.find(p => p.id === a.product_id) || {};
+      return { ...a, name: product.name, url: product.url, retailer: product.retailer, price: product.price, status: product.status };
+    });
+}
+
+function markAlertNotified(id) {
+  const alert = store.alerts.find(a => a.id === id);
+  if (alert) { alert.notified = 1; save(); }
+}
+
+// ── Watchlist ──────────────────────────────────────────────────────────────
+function addToWatchlist(keyword, productType, retailer) {
+  const item = {
+    id: store.nextId.watchlist++,
+    keyword,
+    product_type: productType || '',
+    retailer: retailer || '',
+    active: 1,
+    created_at: new Date().toISOString(),
+  };
+  store.watchlist.push(item);
+  save();
+  return item;
+}
+
+function getWatchlist() {
+  return store.watchlist.filter(w => w.active === 1);
+}
+
+function removeFromWatchlist(id) {
+  const item = store.watchlist.find(w => w.id === id);
+  if (item) { item.active = 0; save(); }
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function getStats() {
+  const products = store.products;
+  return {
+    total_products: products.length,
+    in_stock: products.filter(p => p.status === 'in-stock').length,
+    pre_orders: products.filter(p => p.status === 'pre-order').length,
+    pre_releases: products.filter(p => p.status === 'pre-release').length,
+    out_of_stock: products.filter(p => p.status === 'out-of-stock').length,
+    retailers_tracked: new Set(products.map(p => p.retailer)).size,
+  };
+}
+
+module.exports = {
+  upsertProduct,
+  getProduct,
+  getAllProducts,
+  getProductsByRetailer,
+  getProductsByType,
+  getInStockProducts,
+  searchProducts,
+  logScan,
+  getRecentScans,
+  createAlert,
+  getPendingAlerts,
+  markAlertNotified,
+  addToWatchlist,
+  getWatchlist,
+  removeFromWatchlist,
+  getStats,
+  saveSync,
+};

@@ -7,7 +7,7 @@ const gamestop = require('./gamestop');
 const tcgplayer = require('./tcgplayer');
 const { delay } = require('./base-scraper');
 const config = require('../config');
-const { stmts, db } = require('../db');
+const db = require('../db');
 
 const scrapers = {
   pokemoncenter,
@@ -39,51 +39,35 @@ async function scanRetailer(retailerName) {
   const duration = Date.now() - start;
   let inStockCount = 0;
 
-  // Upsert products and detect stock changes
-  const upsertMany = db.transaction((items) => {
-    for (const product of items) {
-      // Check previous state
-      const existing = stmts.getProduct.get(product.retailer, product.url);
-      const wasOutOfStock = !existing || existing.status === 'out-of-stock' || existing.status === 'unknown';
-      const nowAvailable = product.status === 'in-stock' || product.status === 'pre-order';
+  for (const product of products) {
+    const existing = db.getProduct(product.retailer, product.url);
+    const wasOutOfStock = !existing || existing.status === 'out-of-stock' || existing.status === 'unknown';
+    const nowAvailable = product.status === 'in-stock' || product.status === 'pre-order';
 
-      stmts.upsertProduct.run(product);
+    db.upsertProduct(product);
 
-      if (nowAvailable) {
-        inStockCount++;
-        if (wasOutOfStock) {
-          // New stock alert!
-          const updated = stmts.getProduct.get(product.retailer, product.url);
-          if (updated) {
-            const alertType = product.status === 'pre-order' ? 'pre-order-available' : 'back-in-stock';
-            const msg = `${product.name} is now ${product.status === 'pre-order' ? 'available for pre-order' : 'IN STOCK'} at ${retailerName} — $${product.price}`;
-            stmts.createAlert.run(updated.id, alertType, msg);
-            console.log(`[ALERT] ${msg}`);
-          }
-        }
-      }
-
-      // Detect new pre-releases
-      if (product.is_prerelease && (!existing || !existing.is_prerelease)) {
-        const updated = stmts.getProduct.get(product.retailer, product.url);
+    if (nowAvailable) {
+      inStockCount++;
+      if (wasOutOfStock) {
+        const updated = db.getProduct(product.retailer, product.url);
         if (updated) {
-          stmts.createAlert.run(updated.id, 'new-prerelease', `New pre-release spotted: ${product.name} at ${retailerName}`);
+          const alertType = product.status === 'pre-order' ? 'pre-order-available' : 'back-in-stock';
+          const msg = `${product.name} is now ${product.status === 'pre-order' ? 'available for pre-order' : 'IN STOCK'} at ${retailerName} — $${product.price}`;
+          db.createAlert(updated.id, alertType, msg);
+          console.log(`[ALERT] ${msg}`);
         }
       }
     }
-  });
 
-  upsertMany(products);
+    if (product.is_prerelease && (!existing || !existing.is_prerelease)) {
+      const updated = db.getProduct(product.retailer, product.url);
+      if (updated) {
+        db.createAlert(updated.id, 'new-prerelease', `New pre-release spotted: ${product.name} at ${retailerName}`);
+      }
+    }
+  }
 
-  // Log the scan
-  stmts.logScan.run(
-    retailerName,
-    error ? 'error' : 'success',
-    products.length,
-    inStockCount,
-    error,
-    duration
-  );
+  db.logScan(retailerName, error ? 'error' : 'success', products.length, inStockCount, error, duration);
 
   return { retailer: retailerName, products: products.length, inStock: inStockCount, error, duration };
 }
@@ -99,7 +83,6 @@ async function scanAll() {
     } catch (err) {
       results.push({ retailer: retailerName, products: 0, inStock: 0, error: err.message, duration: 0 });
     }
-    // Be polite — delay between retailers
     await delay(config.REQUEST_DELAY_MS);
   }
 

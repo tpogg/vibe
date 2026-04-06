@@ -1,5 +1,5 @@
 const express = require('express');
-const { stmts } = require('../db');
+const db = require('../db');
 const { scanAll, scanRetailer } = require('../scrapers');
 const { addSSEClient, processPendingAlerts, sendDiscord, sendSMS } = require('../notifications');
 const config = require('../config');
@@ -8,8 +8,7 @@ const router = express.Router();
 
 // ── Dashboard stats ──────────────────────────────────────────────────────────
 router.get('/api/stats', (req, res) => {
-  const stats = stmts.getStats.get();
-  res.json(stats);
+  res.json(db.getStats());
 });
 
 // ── Products ─────────────────────────────────────────────────────────────────
@@ -18,15 +17,15 @@ router.get('/api/products', (req, res) => {
 
   let products;
   if (search) {
-    products = stmts.searchProducts.all(search);
+    products = db.searchProducts(search);
   } else if (retailer) {
-    products = stmts.getProductsByRetailer.all(retailer);
+    products = db.getProductsByRetailer(retailer);
   } else if (type) {
-    products = stmts.getProductsByType.all(type);
+    products = db.getProductsByType(type);
   } else if (status === 'in-stock') {
-    products = stmts.getInStockProducts.all();
+    products = db.getInStockProducts();
   } else {
-    products = stmts.getAllProducts.all();
+    products = db.getAllProducts();
   }
 
   res.json(products);
@@ -69,25 +68,23 @@ router.get('/api/scan/status', (req, res) => {
 
 // ── Scan logs ────────────────────────────────────────────────────────────────
 router.get('/api/scans', (req, res) => {
-  const scans = stmts.getRecentScans.all();
-  res.json(scans);
+  res.json(db.getRecentScans());
 });
 
 // ── Watchlist ────────────────────────────────────────────────────────────────
 router.get('/api/watchlist', (req, res) => {
-  const items = stmts.getWatchlist.all();
-  res.json(items);
+  res.json(db.getWatchlist());
 });
 
 router.post('/api/watchlist', (req, res) => {
   const { keyword, product_type, retailer } = req.body;
   if (!keyword) return res.status(400).json({ error: 'keyword is required' });
-  stmts.addToWatchlist.run(keyword, product_type || '', retailer || '');
+  db.addToWatchlist(keyword, product_type || '', retailer || '');
   res.json({ success: true });
 });
 
 router.delete('/api/watchlist/:id', (req, res) => {
-  stmts.removeFromWatchlist.run(req.params.id);
+  db.removeFromWatchlist(parseInt(req.params.id));
   res.json({ success: true });
 });
 
@@ -126,6 +123,25 @@ router.post('/api/test/sms', async (req, res) => {
   try {
     await sendSMS('Pokemon Card Tracker — Test alert! If you see this, SMS notifications are working.');
     res.json({ success: true, message: 'Test SMS sent' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Also support GET for easy browser testing
+router.get('/api/test/discord', async (req, res) => {
+  if (!config.DISCORD_WEBHOOK_URL) return res.status(400).json({ error: 'DISCORD_WEBHOOK_URL not set' });
+  try {
+    await sendDiscord('', [{
+      title: 'Pokemon Card Tracker — Test Alert',
+      description: 'Your Discord webhook is working! Stock alerts will appear here.',
+      color: 0x00ff41,
+      fields: [
+        { name: 'Retailers', value: 'Pokemon Center, Amazon, Walmart, Target, Best Buy, GameStop, TCGPlayer', inline: false },
+        { name: 'Status', value: 'CONNECTED', inline: true },
+      ],
+    }]);
+    res.json({ success: true, message: 'Test message sent to Discord' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,12 +1,13 @@
 // CLI utility to run a one-off scan
 const { scanAll, scanRetailer } = require('./scrapers');
 const { processPendingAlerts } = require('./notifications');
+const db = require('./db');
 
 const retailer = process.argv[2];
 
 (async () => {
   console.log('Pokemon Card Tracker — Manual Scan');
-  console.log('═'.repeat(50));
+  console.log('='.repeat(50));
 
   if (retailer) {
     console.log(`Scanning: ${retailer}`);
@@ -19,6 +20,7 @@ const retailer = process.argv[2];
   }
 
   await processPendingAlerts();
+  db.saveSync();
   console.log('Done.');
   process.exit(0);
 })();
