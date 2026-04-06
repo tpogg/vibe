@@ -1,0 +1,4 @@
+[task]
+name = "bug-fix"
+description = "Find and fix bugs in a Python script"
+timeout_sec = 180

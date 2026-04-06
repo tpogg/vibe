@@ -1,0 +1,4 @@
+[task]
+name = "fizzbuzz"
+description = "Write a FizzBuzz program that outputs to a file"
+timeout_sec = 120

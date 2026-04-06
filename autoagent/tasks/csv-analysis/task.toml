@@ -1,0 +1,4 @@
+[task]
+name = "csv-analysis"
+description = "Analyze a sales CSV and produce a summary report"
+timeout_sec = 180
