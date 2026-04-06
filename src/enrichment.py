@@ -1,7 +1,6 @@
 """Enrich domains with SEO metrics from RDAP, Open PageRank, and WhoisXML."""
 
 import time
-import json
 import requests
 from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
@@ -40,64 +39,82 @@ class EnrichedDomain:
         return asdict(self)
 
 
+# RDAP servers by TLD
+RDAP_SERVERS = {
+    "com": "https://rdap.verisign.com/com/v1",
+    "net": "https://rdap.verisign.com/net/v1",
+    "org": "https://rdap.org/org/v1",
+    "io": "https://rdap.nic.io/v1",
+    "dev": "https://rdap.nic.google/v1",
+    "co": "https://rdap.nic.co/v1",
+    "app": "https://rdap.nic.google/v1",
+}
+
+
 class DomainEnricher:
     """Enriches raw domain data with WHOIS age and SEO rank metrics."""
 
     def __init__(self):
         self.session = requests.Session()
-
-    def enrich(self, raw: RawDomain) -> EnrichedDomain:
-        domain = EnrichedDomain(
-            name=raw.name,
-            tld=raw.tld,
-            status=raw.status,
-            backlinks=raw.backlinks,
-            domain_pop=raw.domain_pop,
-            archive_count=raw.archive_count,
-            trust_flow=raw.trust_flow,
-            citation_flow=raw.citation_flow,
-            source=raw.source,
-        )
-        self._enrich_rdap(domain)
-        return domain
+        self.session.headers["User-Agent"] = "DomainWatchlistBot/1.0"
 
     def enrich_batch(self, raw_domains: list[RawDomain]) -> list[EnrichedDomain]:
         enriched = []
-        # Batch Open PageRank lookups (supports up to 100 domains per call)
-        domains_list = [r.name for r in raw_domains]
-        pagerank_map = self._batch_pagerank(domains_list)
 
+        # 1. Batch PageRank lookup first (fast, up to 100 per call)
+        domain_names = [r.name.lower() for r in raw_domains]
+        pagerank_map = self._batch_pagerank(domain_names)
+        print(f"[enrich] PageRank data for {len(pagerank_map)}/{len(domain_names)} domains")
+
+        # 2. Convert and apply PageRank
         for raw in raw_domains:
-            domain = self.enrich(raw)
-            if raw.name in pagerank_map:
-                pr = pagerank_map[raw.name]
-                domain.page_rank = pr.get("page_rank_decimal", 0.0)
-                domain.rank = pr.get("rank", 0)
+            domain = EnrichedDomain(
+                name=raw.name.lower(),
+                tld=raw.tld,
+                status=raw.status,
+                backlinks=raw.backlinks,
+                domain_pop=raw.domain_pop,
+                archive_count=raw.archive_count,
+                trust_flow=raw.trust_flow,
+                citation_flow=raw.citation_flow,
+                source=raw.source,
+            )
+            pr_data = pagerank_map.get(domain.name, {})
+            domain.page_rank = pr_data.get("page_rank_decimal", 0.0)
+            domain.rank = pr_data.get("rank", 0)
             enriched.append(domain)
+
+        # 3. RDAP only for promising domains (score > 0 or has backlinks)
+        #    to avoid wasting time on junk domains
+        promising = [d for d in enriched if d.backlinks > 0 or d.page_rank > 0 or d.trust_flow > 0]
+        print(f"[enrich] RDAP lookup for {len(promising)} promising domains")
+
+        for domain in promising[:50]:  # Cap at 50 to keep scan time reasonable
+            self._enrich_rdap(domain)
 
         return enriched
 
     def _enrich_rdap(self, domain: EnrichedDomain):
-        """Fetch domain age and expiration from RDAP (free, no key needed)."""
+        """Fetch domain age from RDAP. Works for .com/.net and some others."""
+        tld = domain.tld.lower()
+        base = RDAP_SERVERS.get(tld)
+        if not base:
+            return
+
         try:
-            url = f"https://rdap.verisign.com/{domain.tld or 'com'}/v1/domain/{domain.name}"
-            resp = self.session.get(url, timeout=10)
+            url = f"{base}/domain/{domain.name}"
+            resp = self.session.get(url, timeout=8)
             if resp.status_code != 200:
-                # Fallback: try WhoisXML if configured
-                if Config.WHOISXML_API_KEY:
-                    self._enrich_whoisxml(domain)
                 return
 
             data = resp.json()
-            events = data.get("events", [])
             now = datetime.now(timezone.utc)
 
-            for event in events:
+            for event in data.get("events", []):
                 action = event.get("eventAction", "")
                 date_str = event.get("eventDate", "")
                 if not date_str:
                     continue
-                # Parse ISO date
                 try:
                     dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
                 except ValueError:
@@ -109,79 +126,52 @@ class DomainEnricher:
                 elif action == "expiration":
                     domain.expiration_date = date_str
 
-            # Extract registrar
-            entities = data.get("entities", [])
-            for entity in entities:
-                roles = entity.get("roles", [])
-                if "registrar" in roles:
+            # Extract registrar name
+            for entity in data.get("entities", []):
+                if "registrar" in entity.get("roles", []):
                     vcard = entity.get("vcardArray", [])
                     if len(vcard) > 1:
                         for item in vcard[1]:
                             if item[0] == "fn":
-                                domain.registrar = item[3]
+                                domain.registrar = str(item[3])
                                 break
 
-        except requests.RequestException:
+        except (requests.RequestException, ValueError, KeyError):
             pass
-        time.sleep(0.3)  # Polite delay
-
-    def _enrich_whoisxml(self, domain: EnrichedDomain):
-        """Fallback WHOIS enrichment via WhoisXML API."""
-        try:
-            url = "https://www.whoisxmlapi.com/whoisserver/WhoisService"
-            params = {
-                "domainName": domain.name,
-                "apiKey": Config.WHOISXML_API_KEY,
-                "outputFormat": "JSON",
-            }
-            resp = self.session.get(url, params=params, timeout=10)
-            if resp.status_code != 200:
-                return
-            data = resp.json()
-            record = data.get("WhoisRecord", {})
-
-            domain.creation_date = record.get("createdDate", "")
-            domain.expiration_date = record.get("expiresDate", "")
-            domain.registrar = record.get("registrarName", "")
-
-            if domain.creation_date:
-                try:
-                    created = datetime.fromisoformat(
-                        domain.creation_date.replace("Z", "+00:00")
-                    )
-                    now = datetime.now(timezone.utc)
-                    domain.domain_age_years = round((now - created).days / 365.25, 1)
-                except ValueError:
-                    pass
-        except requests.RequestException:
-            pass
+        time.sleep(0.2)
 
     def _batch_pagerank(self, domains: list[str]) -> dict:
-        """Fetch Open PageRank scores for up to 100 domains at a time."""
+        """Fetch Open PageRank for up to 100 domains per call."""
         if not Config.OPENPAGERANK_API_KEY or not domains:
+            print("[enrich] No OPENPAGERANK_API_KEY configured")
             return {}
 
         results = {}
-        # API supports 100 domains per request
         for i in range(0, len(domains), 100):
-            batch = domains[i : i + 100]
+            batch = domains[i:i + 100]
             try:
-                url = "https://openpagerank.com/api/v1.0/getPageRank"
-                params = [("domains[]", d) for d in batch]
-                headers = {"API-OPR": Config.OPENPAGERANK_API_KEY}
-                resp = self.session.get(url, params=params, headers=headers, timeout=15)
-                if resp.status_code != 200:
-                    continue
-                data = resp.json()
-                for item in data.get("response", []):
-                    domain_name = item.get("domain", "")
-                    if domain_name:
-                        results[domain_name] = {
-                            "page_rank_decimal": item.get("page_rank_decimal", 0.0) or 0.0,
-                            "rank": item.get("rank", 0) or 0,
-                        }
-                time.sleep(0.5)
-            except requests.RequestException:
+                resp = self.session.get(
+                    "https://openpagerank.com/api/v1.0/getPageRank",
+                    params=[("domains[]", d) for d in batch],
+                    headers={"API-OPR": Config.OPENPAGERANK_API_KEY},
+                    timeout=15,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for item in data.get("response", []):
+                        name = item.get("domain", "").lower()
+                        if name:
+                            pr = item.get("page_rank_decimal")
+                            rank = item.get("rank")
+                            results[name] = {
+                                "page_rank_decimal": float(pr) if pr else 0.0,
+                                "rank": int(rank) if rank else 0,
+                            }
+                else:
+                    print(f"[enrich] PageRank API HTTP {resp.status_code}")
+                time.sleep(0.3)
+            except requests.RequestException as e:
+                print(f"[enrich] PageRank error: {e}")
                 continue
 
         return results
